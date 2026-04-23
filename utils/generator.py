@@ -56,7 +56,7 @@ class ResponseGenerator:
         logger.info("Initializing Generative LLM (google/flan-t5-base)...")
         try:
             self.generator = pipeline(
-                model="google/flan-t5-base", 
+                model="google/flan-t5-base",
                 device=-1 # CPU
             )
             logger.info("Generative LLM loaded successfully.")
@@ -107,9 +107,9 @@ class ResponseGenerator:
 
         try:
             response = self.generator(
-                prompt, 
-                max_length=150, 
-                do_sample=True, 
+                prompt,
+                max_length=150,
+                do_sample=True,
                 temperature=0.7,
                 top_p=0.9
             )
