@@ -49,7 +49,7 @@ const MainApp: React.FC = () => {
     setResult(null);
 
     try {
-      const response = await apiClient.post('/predict/', { text });
+      const response = await apiClient.post('/predict', { text });
       setResult(response.data);
       setText('');
     } catch (err: any) {
