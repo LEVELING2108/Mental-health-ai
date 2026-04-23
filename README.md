@@ -1,85 +1,87 @@
-# 💙 Mental Health AI Support System (Enterprise Edition)
+# 💙 Sentimental AI: Enterprise Mental Health Support (Tier 1)
 
 [![CI Pipeline](https://github.com/LEVELING2108/Mental-health-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/LEVELING2108/Mental-health-ai/actions)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/Frontend-React-61DAFB?style=flat&logo=react&logoColor=black)](https://reactjs.org/)
-[![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![Database](https://img.shields.io/badge/Database-SQLAlchemy-D71F00?style=flat&logo=sqlalchemy&logoColor=white)](https://www.sqlalchemy.org/)
+[![AI-Brain](https://img.shields.io/badge/AI-Transformers-FFD21E?style=flat&logo=huggingface&logoColor=black)](https://huggingface.co/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A high-performance, end-to-end production-grade AI system designed to provide empathetic mental health support through hybrid machine learning architectures.
+**Sentimental AI** is a world-class, production-grade mental health platform that leverages a hybrid of Zero-Shot Classification and Generative AI to provide empathetic, context-aware support. This system is designed with an "Enterprise-First" mindset, featuring secure authentication, multi-modal voice input, and data-driven mood analytics.
 
-## 🎯 Project Overview
-This project transcends basic sentiment analysis by combining specialized classification models with state-of-the-art Transformers (DistilBERT) and Generative LLMs (FLAN-T5). It offers a safe, explainable, and context-aware platform for mental health risk detection and supportive intervention.
+## 🌟 Tier 1 "Killer" Features
 
-## 🧱 Hybrid AI Architecture
-1.  **Specialized Classifier:** A Logistic Regression model with TF-IDF vectorization, trained on a custom dataset for high-accuracy risk detection (Low, Medium, High).
-2.  **Emotion Transformer:** Integrated **DistilBERT** (Hugging Face) to detect nuanced emotional states (Joy, Sadness, Fear, Anger, Surprise, Love).
-3.  **Generative AI Layer:** Employs **FLAN-T5-Base** to generate human-like, context-aware empathetic responses based on detected risks and emotions.
-4.  **Knowledge Injection:** A keyword-specific guidance system that injects expert-level context (Anxiety, Grief, Work-stress, etc.) into the AI's generation process.
+### 1. 🎙️ Multi-Modal Intelligence
+*   **Speech-to-Text Integration:** Users can speak their feelings directly through a high-precision voice recognition system.
+*   **Zero-Shot Classifier:** Powered by `facebook/bart-large-mnli`, the system understands complex clinical patterns (Depression, Anxiety, Suicidal Ideation) without needing massive niche datasets.
+*   **Emotion Transformer:** Detects 6 core emotional states (Joy, Sadness, Fear, Anger, Surprise, Love) using `distilbert-base-uncased-emotion`.
+
+### 2. 📊 Actionable Mood Analytics
+*   **"My Journey" Dashboard:** Interactive data visualizations built with **Recharts**.
+*   **Risk Trends:** Area charts visualizing mental health risk levels over time.
+*   **Emotional Distribution:** Bar charts showing the frequency of different emotional states.
+
+### 3. 🛡️ Enterprise-Grade Security
+*   **JWT Authentication:** Secure login and registration with JSON Web Tokens.
+*   **Direct Bcrypt Hashing:** Professional-standard password encryption.
+*   **Database Persistence:** Full emotional history tracking using **SQLAlchemy** and **SQLite/PostgreSQL**.
+
+### 4. ✨ Generative Empathy
+*   **Context-Aware Support:** Uses **FLAN-T5-Base** to generate unique, supportive responses.
+*   **Knowledge Injection:** Automatically injects expert-level guidance for 15+ critical categories (Exam stress, Grief, Burnout, etc.).
+
+---
+
+## 🧱 Technical Architecture
+
+1.  **Backend (FastAPI):** Scalable REST API with decoupled routers, schemas, and lazy-loading for AI models.
+2.  **Frontend (React + Vite):** A modern, responsive sidebar-based shell with global state management via the Context API.
+3.  **MLOps:** Full CI/CD pipeline via GitHub Actions, including linting (Ruff) and automated testing (Pytest).
+4.  **DevOps:** Multi-stage Docker builds for secure, lightweight deployment.
+
+---
 
 ## 📁 Project Structure
 ```text
 Mental_Health_AI/
-├── api/                  # FastAPI Backend Architecture
-│   ├── routes/           # Decoupled Endpoint Controllers
-│   ├── schemas/          # Strict Pydantic Data Models
-│   └── main.py           # API Gateway & Middleware
-├── core/                 # Enterprise Core (Config, Logging, Settings)
-├── frontend/             # Modern React (TS) + Vite Frontend
-├── model/                # ML Implementation & Classifiers
-├── utils/                # Utility Modules
-│   ├── generator.py      # LLM & Knowledge Base Logic
-│   ├── response.py       # Safety-checked Rule Engine
-│   └── explain.py        # TF-IDF Explainability Helpers
-├── data/                 # Curated Training Datasets
-├── tests/                # Comprehensive Test Suite (Pytest)
-├── Dockerfile            # Multi-stage Docker Build
-└── docker-compose.yml    # Full-stack Orchestration
+├── api/                  # FastAPI Backend
+│   ├── routes/           # Auth, Predict, and Mood history controllers
+│   ├── schemas/          # Pydantic V2 Data Models
+│   └── deps.py           # JWT & DB Dependencies
+├── core/                 # App Core (Security, Config, Logging)
+├── db/                   # Database Models & Connections
+├── alembic/              # Database Migrations
+├── frontend/             # React (TS) + Vite + Recharts
+├── model/                # AI Implementation (Zero-Shot, Transformers)
+├── utils/                # Hybrid AI logic & Knowledge Base
+├── tests/                # Comprehensive Test Suite
+└── Dockerfile            # Containerization
 ```
 
-## 🛠 Technologies
-- **Backend:** Python, FastAPI, Pydantic, Uvicorn, Scikit-learn, Joblib.
-- **Deep Learning:** PyTorch, Hugging Face Transformers (DistilBERT, FLAN-T5).
-- **Frontend:** React 18+, TypeScript, Vite, Vanilla CSS.
-- **DevOps:** Docker, Docker Compose, GitHub Actions (CI), Ruff (Linting).
-
-## 🚀 Getting Started
+## 🚀 Installation & Setup
 
 ### Prerequisites
 - Python 3.12+
 - Node.js & npm
 
-### Backend Setup
-1. **Install Dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-2. **Train Classifier:**
-   ```bash
-   python model/train.py
-   ```
-3. **Run API:**
-   ```bash
-   uvicorn api.main:app --reload --port 8001
-   ```
+### 1. Backend Setup
+```bash
+# Install dependencies
+pip install -r requirements.txt
 
-### Frontend Setup
-1. **Navigate to Frontend:**
-   ```bash
-   cd frontend
-   ```
-2. **Install & Run:**
-   ```bash
-   npm install
-   npm run dev
-   ```
+# Run migrations
+alembic upgrade head
 
-## 🔥 Key Enterprise Features
-- **Explainability:** Real-time keyword extraction to show "why" the AI flagged a specific risk level.
-- **Hybrid Logic:** Sentiment-based risk escalation for enhanced safety.
-- **Decoupled Scaling:** Backend and Frontend communicate via a secure REST API.
-- **Crisis Intervention:** Automatic detection of high-risk keywords triggers immediate display of crisis resources.
-- **Production-Ready:** Includes structured logging, environment configuration, and containerization.
+# Start server
+python -m uvicorn api.main:app --reload --host 127.0.0.1 --port 8001
+```
+
+### 2. Frontend Setup
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
 ---
 **Disclaimer:** *This AI tool is for informational and educational purposes only. It is not a substitute for professional mental health advice, diagnosis, or treatment.*
