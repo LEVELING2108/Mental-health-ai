@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.routes import predict
+from api.routes import auth, moods, predict
 from core.config import settings
 
 app = FastAPI(
@@ -28,6 +28,8 @@ def read_root():
         "api_docs": f"{settings.API_V1_STR}/docs"
     }
 
+app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
+app.include_router(moods.router, prefix=f"{settings.API_V1_STR}/moods", tags=["moods"])
 app.include_router(predict.router, prefix=f"{settings.API_V1_STR}/predict", tags=["predict"])
 
 if __name__ == "__main__":
