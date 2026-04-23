@@ -27,13 +27,36 @@ KEYWORD_GUIDANCE = {
     "motivation": "When motivation is low, 'action creates momentum.' Try doing just one tiny task for two minutes—often, that's enough to start the flow."
 }
 
+# Advanced Suggestion Engine for actionable advice
+SUGGESTIONS = {
+    "anxiety": [
+        "Try the '5-4-3-2-1' grounding technique.",
+        "Practice 4-7-8 breathing (inhale 4s, hold 7s, exhale 8s).",
+        "Consider reducing caffeine intake for the next 24 hours."
+    ],
+    "depression": [
+        "Try the 'Behavioral Activation' method: do one small task you used to enjoy, even if you don't feel like it.",
+        "Step outside for 10 minutes of natural sunlight.",
+        "Reach out to one trusted friend just to say 'hello'."
+    ],
+    "stress": [
+        "Use the 'Eisenhower Matrix' to prioritize your tasks and delegate what isn't urgent.",
+        "Try a 5-minute progressive muscle relaxation (tense and release each muscle group).",
+        "Set a 'hard stop' time for work today to protect your evening."
+    ],
+    "sleep": [
+        "Avoid blue light (phones/screens) at least 60 minutes before bed.",
+        "Try a 'Brain Dump': write down everything worrying you on paper to clear your mind.",
+        "Keep your bedroom temperature slightly cool (around 18°C/65°F)."
+    ]
+}
+
 class ResponseGenerator:
     def __init__(self):
         logger.info("Initializing Generative LLM (google/flan-t5-base)...")
         try:
-            # Task-agnostic loading to allow for inferred seq2seq task
             self.generator = pipeline(
-                model="google/flan-t5-base",
+                model="google/flan-t5-base", 
                 device=-1 # CPU
             )
             logger.info("Generative LLM loaded successfully.")
@@ -41,39 +64,57 @@ class ResponseGenerator:
             logger.error(f"Failed to load Generative LLM: {e}")
             self.generator = None
 
-    def get_keyword_context(self, keywords: list[str]) -> str:
-        """Inject specific expert guidance if certain keywords are detected."""
-        context_snippets = []
+    def get_actionable_suggestions(self, risk: str, keywords: list[str]) -> str:
+        """Fetch concrete suggestions based on detected risk and keywords."""
+        relevant_tips = []
         for kw in keywords:
-            if kw.lower() in KEYWORD_GUIDANCE:
-                context_snippets.append(KEYWORD_GUIDANCE[kw.lower()])
-        return " ".join(context_snippets)
+            if kw.lower() in SUGGESTIONS:
+                relevant_tips.extend(SUGGESTIONS[kw.lower()])
+
+        if not relevant_tips:
+            # Fallback based on risk level
+            if risk == "high":
+                relevant_tips = SUGGESTIONS["depression"]
+            else:
+                relevant_tips = SUGGESTIONS["stress"]
+
+        # Return top 2 unique suggestions
+        import random
+        return " ".join(random.sample(list(set(relevant_tips)), min(2, len(relevant_tips))))
 
     def generate(self, risk: str, emotion: str, user_text: str, keywords: list[str]) -> str:
         if not self.generator:
             return "I am here to support you. Please consider speaking with a professional."
 
-        # Build a sophisticated prompt for the LLM
-        keyword_context = self.get_keyword_context(keywords)
+        # Get specialized context and actionable tips
+        keyword_context = ""
+        for kw in keywords:
+            if kw.lower() in KEYWORD_GUIDANCE:
+                keyword_context += KEYWORD_GUIDANCE[kw.lower()] + " "
 
+        action_tips = self.get_actionable_suggestions(risk, keywords)
+
+        # ELITE PROMPT: Explicitly instructs the AI to include the suggestions
         prompt = (
-            f"Context: You are a highly empathetic mental health support assistant. "
-            f"The user is feeling {emotion}. Their risk level is {risk}. "
-            f"Specific guidance: {keyword_context} "
+            f"Context: You are a clinical mental health assistant. "
+            f"User is feeling {emotion} with a {risk} risk level. "
+            f"Expert Guidance: {keyword_context} "
+            f"Actionable Suggestions to include: {action_tips} "
             f"User says: '{user_text}' "
-            f"Task: Generate a short, deeply supportive, and empathetic response. "
-            f"Do not give medical advice. Encourage self-care."
+            f"Task: Write a deeply empathetic response. "
+            f"Structure: 1. Validate feelings. 2. Provide the actionable suggestions mentioned above. 3. Close with encouragement."
         )
 
         try:
             response = self.generator(
-                prompt,
-                max_length=120,
-                do_sample=True,
-                temperature=0.8,
+                prompt, 
+                max_length=150, 
+                do_sample=True, 
+                temperature=0.7,
                 top_p=0.9
             )
             return response[0]['generated_text']
+
         except Exception as e:
             logger.error(f"Generation error: {e}")
             return "I'm sorry, I'm having trouble finding the words right now, but I want you to know I'm listening and I care."
