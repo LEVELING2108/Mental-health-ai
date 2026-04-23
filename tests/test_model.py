@@ -8,8 +8,8 @@ def predictor():
     return MentalHealthPredictor()
 
 def test_predictor_initialization(predictor):
-    assert predictor.model is not None
-    assert predictor.vectorizer is not None
+    assert predictor.classifier is not None
+    assert predictor.emotion_analyzer is not None
 
 def test_predictor_predict(predictor):
     result = predictor.predict("I feel very lonely and sad")
