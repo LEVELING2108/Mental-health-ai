@@ -1,15 +1,12 @@
 import os
 import sys
-from typing import Any, Dict
+from typing import Any
 
-import torch
 from transformers import pipeline
 
 # Add the parent directory to sys.path to import from utils
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core.config import settings
 from core.logger import setup_logger
-from utils.preprocess import clean_text
 from utils.generator import ai_generator
 
 logger = setup_logger(__name__)
@@ -25,7 +22,7 @@ class MentalHealthPredictor:
                 model="facebook/bart-large-mnli",
                 device=-1  # Use CPU
             )
-            
+
             # 2. Advanced Emotion Transformer
             logger.info("Loading Advanced Emotion Model (distilbert-base-uncased-emotion)...")
             self.emotion_analyzer = pipeline(
@@ -33,7 +30,7 @@ class MentalHealthPredictor:
                 model="bhadresh-savani/distilbert-base-uncased-emotion",
                 device=-1  # Use CPU
             )
-            
+
             logger.info("All Advanced AI Models loaded successfully.")
 
         except Exception as e:
@@ -41,15 +38,13 @@ class MentalHealthPredictor:
             raise
 
     def predict(self, text: str) -> dict[str, Any]:
-        cleaned = clean_text(text)
-
         # 1. Zero-Shot Risk Classification
         # We provide the labels we want the model to look for.
         candidate_labels = ["normal", "anxiety", "depression", "suicidal", "stress", "bipolar"]
-        
+
         logger.info(f"Analyzing risk with Zero-Shot for labels: {candidate_labels}")
         raw_prediction = self.classifier(text, candidate_labels=candidate_labels)
-        
+
         # The first label in 'labels' is the most likely one
         label = raw_prediction['labels'][0]
         score = raw_prediction['scores'][0]
@@ -75,7 +70,7 @@ class MentalHealthPredictor:
             risk=final_risk,
             emotion=emotion_label,
             user_text=text,
-            keywords=[label] 
+            keywords=[label]
         )
 
         logger.info(f"Analysis Complete - Risk: {final_risk} (Detected: {label}), Emotion: {emotion_label}")

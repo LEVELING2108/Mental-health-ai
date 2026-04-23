@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
-from datetime import datetime
+
 
 class MoodLogOut(BaseModel):
     id: str

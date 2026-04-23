@@ -70,6 +70,6 @@ def predict_mental_health(
         import traceback
         logger.error(traceback.format_exc())
         raise HTTPException(
-            status_code=500, 
+            status_code=500,
             detail=f"Analysis failed on server: {str(e)}"
         )

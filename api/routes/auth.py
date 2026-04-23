@@ -7,12 +7,11 @@ from sqlalchemy.orm import Session
 from api.schemas.user import Token, UserCreate, UserOut
 from core.config import settings
 from core.database import get_db
+from core.logger import setup_logger
 from core.security import create_access_token, get_password_hash, verify_password
 from db.models import User
 
 router = APIRouter()
-
-from core.logger import setup_logger
 
 logger = setup_logger(__name__)
 
