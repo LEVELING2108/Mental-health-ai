@@ -32,7 +32,12 @@ export const LoginForm: React.FC<AuthFormProps> = ({ onSuccess, toggleForm }) =>
       login(response.data.access_token, email);
       onSuccess();
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Login failed. Please check your credentials.');
+      const detail = err.response?.data?.detail;
+      if (Array.isArray(detail)) {
+        setError(detail[0].msg);
+      } else {
+        setError(detail || 'Login failed. Please check your credentials.');
+      }
     } finally {
       setLoading(false);
     }
@@ -98,7 +103,12 @@ export const RegisterForm: React.FC<AuthFormProps> = ({ onSuccess, toggleForm })
       alert('Registration successful! Please login.');
       toggleForm();
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Registration failed.');
+      const detail = err.response?.data?.detail;
+      if (Array.isArray(detail)) {
+        setError(detail[0].msg);
+      } else {
+        setError(detail || 'Registration failed.');
+      }
     } finally {
       setLoading(false);
     }
