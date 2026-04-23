@@ -12,22 +12,34 @@ from db.models import User
 
 router = APIRouter()
 
+from core.logger import setup_logger
+
+logger = setup_logger(__name__)
+
 @router.post("/register", response_model=UserOut)
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == user_in.email).first()
-    if user:
-        raise HTTPException(
-            status_code=400,
-            detail="A user with this email already exists."
-        )
+    logger.info(f"Attempting to register user: {user_in.email}")
+    try:
+        user = db.query(User).filter(User.email == user_in.email).first()
+        if user:
+            logger.warning(f"Registration failed: User {user_in.email} already exists.")
+            raise HTTPException(
+                status_code=400,
+                detail="A user with this email already exists."
+            )
 
-    hashed_password = get_password_hash(user_in.password)
-    new_user = User(email=user_in.email, hashed_password=hashed_password)
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
-
+        hashed_password = get_password_hash(user_in.password)
+        new_user = User(email=user_in.email, hashed_password=hashed_password)
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        logger.info(f"User {user_in.email} registered successfully.")
+        return new_user
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error during registration: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error during registration.")
 @router.post("/login", response_model=Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == form_data.username).first()

@@ -92,6 +92,7 @@ export const RegisterForm: React.FC<AuthFormProps> = ({ onSuccess, toggleForm })
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,15 +100,30 @@ export const RegisterForm: React.FC<AuthFormProps> = ({ onSuccess, toggleForm })
     setError('');
     
     try {
+      // 1. Register the user
       await apiClient.post('/auth/register', { email, password });
-      alert('Registration successful! Please login.');
-      toggleForm();
+      
+      // 2. Automatically log in the user for a better UX
+      const formData = new FormData();
+      formData.append('username', email);
+      formData.append('password', password);
+      
+      const loginRes = await apiClient.post('/auth/login', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      login(loginRes.data.access_token, email);
+      onSuccess();
     } catch (err: any) {
-      const detail = err.response?.data?.detail;
-      if (Array.isArray(detail)) {
-        setError(detail[0].msg);
+      if (!err.response) {
+        setError('Connection Error: The backend server appears to be offline. Please check if it is running on port 8001.');
       } else {
-        setError(detail || 'Registration failed.');
+        const detail = err.response?.data?.detail;
+        if (Array.isArray(detail)) {
+          setError(`Validation Error: ${detail[0].msg}`);
+        } else {
+          setError(detail || 'Registration failed unexpectedly.');
+        }
       }
     } finally {
       setLoading(false);
