@@ -28,27 +28,33 @@ def predict_mental_health(
 ) -> SupportResponse:
     logger.info(f"Received prediction request. Text length: {len(request.text)}")
     try:
+        # 1. Perform AI Analysis
+        logger.info("Starting AI prediction...")
         result = predictor.predict(request.text)
-        logger.debug(f"Prediction result: {result}")
+        logger.info("AI prediction completed successfully.")
 
-        # Standard safety response
+        # 2. Prepare responses
         safe_response = generate_safe_response(result)
         resources = get_resources(result["risk"])
 
-        # Log to Database if user is authenticated
+        # 3. Optional Persistence (Log to Database)
         if current_user:
-            mood_log = MoodLog(
-                user_id=current_user.id,
-                user_text=request.text,
-                risk_level=result["risk"],
-                confidence_score=result["score"],
-                emotion=result["emotion"],
-                keywords=result["keywords"][0] if result["keywords"] else None,
-                ai_response=result["ai_generated_response"]
-            )
-            db.add(mood_log)
-            db.commit()
-            logger.info(f"Mood logged successfully for user {current_user.email}")
+            try:
+                mood_log = MoodLog(
+                    user_id=current_user.id,
+                    user_text=request.text,
+                    risk_level=result["risk"],
+                    confidence_score=result["score"],
+                    emotion=result["emotion"],
+                    keywords=result["keywords"][0] if result["keywords"] else None,
+                    ai_response=result["ai_generated_response"]
+                )
+                db.add(mood_log)
+                db.commit()
+                logger.info(f"Mood logged successfully for user {current_user.email}")
+            except Exception as db_err:
+                logger.error(f"Database logging failed (non-critical): {db_err}")
+                db.rollback()
 
         return SupportResponse(
             risk=result["risk"],
@@ -60,5 +66,10 @@ def predict_mental_health(
             resources=resources
         )
     except Exception as e:
-        logger.error(f"Error during prediction: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error during prediction.")
+        logger.error(f"CRITICAL: Error during predict_mental_health: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Analysis failed on server: {str(e)}"
+        )

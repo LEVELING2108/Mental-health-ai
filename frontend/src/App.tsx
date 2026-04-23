@@ -53,7 +53,17 @@ const MainApp: React.FC = () => {
       setResult(response.data);
       setText('');
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Analysis failed. Please check if the API is running.');
+      console.error('Analysis Error:', err);
+      if (err.response) {
+        // Server responded with an error
+        const detail = err.response.data?.detail;
+        setError(Array.isArray(detail) ? detail[0].msg : (detail || `Server Error: ${err.response.status}`));
+      } else if (err.request) {
+        // Request made but no response (Network Error)
+        setError('Network Error: The API is unreachable. Please ensure the backend is running on port 8001.');
+      } else {
+        setError(`Error: ${err.message}`);
+      }
     } finally {
       setLoading(false);
     }
