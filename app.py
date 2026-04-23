@@ -1,15 +1,15 @@
-import streamlit as st
-import requests
 import os
-import sys
-from core.config import settings
+
+import requests
+import streamlit as st
+
 from core.logger import setup_logger
 
 logger = setup_logger(__name__)
 
 # Streamlit UI Configuration
 st.set_page_config(
-    page_title="Mental Health AI Support", 
+    page_title="Mental Health AI Support",
     page_icon="💙",
     layout="centered"
 )
@@ -48,14 +48,14 @@ if st.button("Get Support"):
                     json={"text": user_input},
                     timeout=10
                 )
-                
+
                 if response.status_code == 200:
                     result = response.json()
-                    
+
                     # Display Prediction Results
                     st.subheader("Analysis Results")
                     col1, col2 = st.columns(2)
-                    
+
                     with col1:
                         risk_level = result["risk"].lower()
                         risk_color = {"low": "green", "medium": "orange", "high": "red"}
@@ -73,17 +73,17 @@ if st.button("Get Support"):
                     # Display Response
                     st.subheader("Supportive Message")
                     st.info(result["response"])
-                    
+
                     # Display Resources if high risk
                     if result["resources"]:
                         st.warning("**Crisis Resources:**")
                         st.markdown(result["resources"])
-                
+
                 elif response.status_code == 401:
                     st.error("Authentication Error: The API returned 401 'Not authenticated'.")
                     st.info("This usually means another service is running on this port. We've switched to port 8001. Please restart the backend with the new command.")
                     logger.error(f"401 Authentication Error: {response.text}")
-                
+
                 else:
                     st.error(f"API Error: {response.status_code} - {response.text}")
                     logger.error(f"API returned error: {response.status_code}")
@@ -94,7 +94,7 @@ if st.button("Get Support"):
             except Exception as e:
                 st.error(f"An unexpected error occurred: {e}")
                 logger.error(f"UI Error: {e}")
-            
+
     else:
         st.warning("Please enter some text before clicking the button.")
 

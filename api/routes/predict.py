@@ -1,8 +1,9 @@
 from fastapi import APIRouter, HTTPException
+
 from api.schemas.predict import SupportRequest, SupportResponse
+from core.logger import setup_logger
 from model.predict import MentalHealthPredictor
 from utils.response import generate_safe_response, get_resources
-from core.logger import setup_logger
 
 router = APIRouter()
 logger = setup_logger(__name__)
@@ -16,11 +17,11 @@ def predict_mental_health(request: SupportRequest) -> SupportResponse:
     logger.info(f"Received prediction request. Text length: {len(request.text)}")
     try:
         result = predictor.predict(request.text)
-        
+
         # Standard safety response
         safe_response = generate_safe_response(result)
         resources = get_resources(result["risk"])
-        
+
         return SupportResponse(
             risk=result["risk"],
             score=result["score"],

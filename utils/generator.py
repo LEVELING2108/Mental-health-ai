@@ -1,5 +1,5 @@
-import logging
 from transformers import pipeline
+
 from core.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -32,8 +32,8 @@ class ResponseGenerator:
         try:
             # Using FLAN-T5-Base: Efficient, high-quality instruction follower (~900MB)
             self.generator = pipeline(
-                "text2text-generation", 
-                model="google/flan-t5-base", 
+                "text2text-generation",
+                model="google/flan-t5-base",
                 device=-1 # CPU
             )
             logger.info("Generative LLM loaded successfully.")
@@ -55,7 +55,7 @@ class ResponseGenerator:
 
         # Build a sophisticated prompt for the LLM
         keyword_context = self.get_keyword_context(keywords)
-        
+
         prompt = (
             f"Context: You are a highly empathetic mental health support assistant. "
             f"The user is feeling {emotion}. Their risk level is {risk}. "
@@ -67,9 +67,9 @@ class ResponseGenerator:
 
         try:
             response = self.generator(
-                prompt, 
-                max_length=120, 
-                do_sample=True, 
+                prompt,
+                max_length=120,
+                do_sample=True,
                 temperature=0.8,
                 top_p=0.9
             )

@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 
+
 class SupportRequest(BaseModel):
     text: str = Field(..., description="User input text expressing their feelings.", min_length=1)
 
