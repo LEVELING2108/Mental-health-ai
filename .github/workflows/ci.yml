@@ -28,6 +28,10 @@ jobs:
       run: |
         ruff check .
         
+    - name: Train model
+      run: |
+        PYTHONPATH=. python model/train.py
+        
     - name: Run tests with pytest
       run: |
         PYTHONPATH=. pytest --cov=api --cov=model --cov=core

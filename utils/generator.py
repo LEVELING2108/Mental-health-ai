@@ -1,3 +1,4 @@
+
 from transformers import pipeline
 
 from core.logger import setup_logger
@@ -30,9 +31,8 @@ class ResponseGenerator:
     def __init__(self):
         logger.info("Initializing Generative LLM (google/flan-t5-base)...")
         try:
-            # Using FLAN-T5-Base: Efficient, high-quality instruction follower (~900MB)
+            # Task-agnostic loading to allow for inferred seq2seq task
             self.generator = pipeline(
-                "text2text-generation",
                 model="google/flan-t5-base",
                 device=-1 # CPU
             )
@@ -41,7 +41,7 @@ class ResponseGenerator:
             logger.error(f"Failed to load Generative LLM: {e}")
             self.generator = None
 
-    def get_keyword_context(self, keywords):
+    def get_keyword_context(self, keywords: list[str]) -> str:
         """Inject specific expert guidance if certain keywords are detected."""
         context_snippets = []
         for kw in keywords:
@@ -49,7 +49,7 @@ class ResponseGenerator:
                 context_snippets.append(KEYWORD_GUIDANCE[kw.lower()])
         return " ".join(context_snippets)
 
-    def generate(self, risk, emotion, user_text, keywords):
+    def generate(self, risk: str, emotion: str, user_text: str, keywords: list[str]) -> str:
         if not self.generator:
             return "I am here to support you. Please consider speaking with a professional."
 

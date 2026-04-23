@@ -1,4 +1,6 @@
-from fastapi import APIRouter, HTTPException
+from functools import lru_cache
+
+from fastapi import APIRouter, Depends, HTTPException
 
 from api.schemas.predict import SupportRequest, SupportResponse
 from core.logger import setup_logger
@@ -8,15 +10,20 @@ from utils.response import generate_safe_response, get_resources
 router = APIRouter()
 logger = setup_logger(__name__)
 
-# Initialize predictor
-# Loading will be slower the first time as it downloads the model (Zephyr or Flan-T5)
-predictor = MentalHealthPredictor()
+@lru_cache
+def get_predictor() -> MentalHealthPredictor:
+    """Dependency for lazy loading the predictor."""
+    return MentalHealthPredictor()
 
 @router.post("/", response_model=SupportResponse)
-def predict_mental_health(request: SupportRequest) -> SupportResponse:
+def predict_mental_health(
+    request: SupportRequest,
+    predictor: MentalHealthPredictor = Depends(get_predictor)
+) -> SupportResponse:
     logger.info(f"Received prediction request. Text length: {len(request.text)}")
     try:
         result = predictor.predict(request.text)
+        logger.debug(f"Prediction result: {result}")
 
         # Standard safety response
         safe_response = generate_safe_response(result)

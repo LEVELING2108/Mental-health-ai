@@ -7,7 +7,9 @@ client = TestClient(app)
 def test_read_root():
     response = client.get("/")
     assert response.status_code == 200
-    assert "is running" in response.json()["message"]
+    data = response.json()
+    assert data["status"] == "online"
+    assert "project" in data
 
 def test_predict_mental_health():
     response = client.post(
@@ -18,8 +20,10 @@ def test_predict_mental_health():
     data = response.json()
     assert "risk" in data
     assert "score" in data
+    assert "emotion" in data
     assert "keywords" in data
     assert "response" in data
+    assert "ai_generated_response" in data
 
 def test_predict_mental_health_empty():
     response = client.post(
