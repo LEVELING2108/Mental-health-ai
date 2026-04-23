@@ -1,24 +1,32 @@
 version: '3.8'
 
 services:
-  api:
-    build: .
-    container_name: mental-health-api
+  backend:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: sentimental-backend
     ports:
-      - "8000:8000"
+      - "8001:8001"
     environment:
+      - DATABASE_URL=sqlite:///./mental_health.db
       - LOG_LEVEL=INFO
     volumes:
-      - .:/app
-    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+      - ./mental_health.db:/app/mental_health.db
+    restart: always
 
-  ui:
-    build: .
-    container_name: mental-health-ui
+  frontend:
+    build:
+      context: ./frontend
+    container_name: sentimental-frontend
     ports:
-      - "8501:8501"
+      - "5173:5173"
     environment:
-      - LOG_LEVEL=INFO
+      - VITE_API_BASE_URL=http://localhost:8001/api/v1
     volumes:
-      - .:/app
-    command: streamlit run app.py --server.port 8501 --server.address 0.0.0.0
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev -- --host 0.0.0.0
+    depends_on:
+      - backend
+    restart: always

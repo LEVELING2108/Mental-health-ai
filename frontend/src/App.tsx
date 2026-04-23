@@ -1,17 +1,21 @@
 import React, { useState } from 'react';
 import './App.css';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { LoginForm, RegisterForm } from './components/Auth';
 import { Dashboard } from './components/Dashboard';
+import { BreathingExercise } from './components/Grounding';
 import apiClient from './api/client';
 import { 
   MessageSquare, LayoutDashboard, LogOut, User as UserIcon, 
-  ChevronRight, BrainCircuit, HeartHandshake, ShieldCheck, Mic, MicOff 
+  ChevronRight, BrainCircuit, HeartHandshake, ShieldCheck, 
+  Mic, MicOff, Sun, Moon, Wind 
 } from 'lucide-react';
 
 const MainApp: React.FC = () => {
   const { userEmail, logout, isAuthenticated } = useAuth();
-  const [view, setView] = useState<'chat' | 'dashboard'>('chat');
+  const { theme, toggleTheme } = useTheme();
+  const [view, setView] = useState<'chat' | 'dashboard' | 'grounding'>('chat');
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   
   // Chat State
@@ -28,7 +32,6 @@ const MainApp: React.FC = () => {
       alert("Your browser does not support voice recognition. Please try Chrome or Edge.");
       return;
     }
-
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-US';
     recognition.onstart = () => setIsListening(true);
@@ -43,11 +46,9 @@ const MainApp: React.FC = () => {
   const handlePredict = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim()) return;
-
     setLoading(true);
     setError(null);
     setResult(null);
-
     try {
       const response = await apiClient.post('/predict', { text });
       setResult(response.data);
@@ -55,11 +56,9 @@ const MainApp: React.FC = () => {
     } catch (err: any) {
       console.error('Analysis Error:', err);
       if (err.response) {
-        // Server responded with an error
         const detail = err.response.data?.detail;
         setError(Array.isArray(detail) ? detail[0].msg : (detail || `Server Error: ${err.response.status}`));
       } else if (err.request) {
-        // Request made but no response (Network Error)
         setError('Network Error: The API is unreachable. Please ensure the backend is running on port 8001.');
       } else {
         setError(`Error: ${err.message}`);
@@ -107,8 +106,15 @@ const MainApp: React.FC = () => {
           <button className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}>
             <LayoutDashboard size={20} /> <span>My Journey</span>
           </button>
+          <button className={view === 'grounding' ? 'active' : ''} onClick={() => setView('grounding')}>
+            <Wind size={20} /> <span>Grounding</span>
+          </button>
         </div>
+        
         <div className="nav-user">
+          <button className="theme-toggle" onClick={toggleTheme}>
+            {theme === 'light' ? <><Moon size={18} /> Dark Mode</> : <><Sun size={18} /> Light Mode</>}
+          </button>
           <div className="user-info">
             <UserIcon size={18} />
             <span>{userEmail?.split('@')[0]}</span>
@@ -121,11 +127,17 @@ const MainApp: React.FC = () => {
 
       <main className="content-area">
         <header className="content-header">
-          <h2>{view === 'chat' ? 'AI Support Session' : 'Mental Health Dashboard'}</h2>
-          <p>{view === 'chat' ? 'Share your thoughts with our hybrid AI system.' : 'Visualizing your emotional trends over time.'}</p>
+          <h2>
+            {view === 'chat' ? 'AI Support Session' : 
+             view === 'dashboard' ? 'Mental Health Dashboard' : 'Grounding Tool'}
+          </h2>
+          <p>
+            {view === 'chat' ? 'Share your thoughts with our hybrid AI system.' : 
+             view === 'dashboard' ? 'Visualizing your emotional trends over time.' : 'Practice breathing to center yourself.'}
+          </p>
         </header>
 
-        {view === 'chat' ? (
+        {view === 'chat' && (
           <div className="chat-container">
             <div className="chat-main">
               {result && (
@@ -145,21 +157,12 @@ const MainApp: React.FC = () => {
                       </div>
                     </div>
                   </div>
-
                   <div className="support-message ai-gen">
                     <h3>✨ AI Personalized Support</h3>
                     <p>{result.ai_generated_response}</p>
                   </div>
-
-                  {result.resources && (
-                    <div className="crisis-resources">
-                      <h3>⚠️ Crisis Resources</h3>
-                      <p>{result.resources}</p>
-                    </div>
-                  )}
                 </div>
               )}
-
               <form className="chat-input-area" onSubmit={handlePredict}>
                 <div className="textarea-wrapper">
                   <textarea 
@@ -176,18 +179,17 @@ const MainApp: React.FC = () => {
                     {isListening ? <MicOff size={20} /> : <Mic size={20} />}
                   </button>
                 </div>
-                <button type="submit" disabled={loading || !text.trim()}>
+                <button type="submit" className="analyze-btn" disabled={loading || !text.trim()}>
                   {loading ? 'Analyzing...' : <><ChevronRight /> <span>Analyze</span></>}
                 </button>
               </form>
               {error && <p className="chat-error">{error}</p>}
             </div>
-            
             <aside className="chat-info">
               <div className="info-card">
                 <HeartHandshake color="#3b82f6" />
                 <h4>How it works</h4>
-                <p>We use a specialized classifier for risk and a transformer model for emotional nuance.</p>
+                <p>We use zero-shot classification for risk and a transformer model for emotional nuance.</p>
               </div>
               <div className="info-card">
                 <ShieldCheck color="#10b981" />
@@ -196,18 +198,20 @@ const MainApp: React.FC = () => {
               </div>
             </aside>
           </div>
-        ) : (
-          <Dashboard />
         )}
+        {view === 'dashboard' && <Dashboard />}
+        {view === 'grounding' && <BreathingExercise />}
       </main>
     </div>
   );
 };
 
 const App: React.FC = () => (
-  <AuthProvider>
-    <MainApp />
-  </AuthProvider>
+  <ThemeProvider>
+    <AuthProvider>
+      <MainApp />
+    </AuthProvider>
+  </ThemeProvider>
 );
 
 export default App;
