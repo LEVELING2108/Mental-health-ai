@@ -1,39 +1,40 @@
 import os
 import sys
-from typing import Any
+from typing import Any, Dict
 
-import joblib
+import torch
 from transformers import pipeline
 
 # Add the parent directory to sys.path to import from utils
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.config import settings
 from core.logger import setup_logger
-from utils.explain import get_top_keywords
-from utils.generator import ai_generator  # New: Generative AI
 from utils.preprocess import clean_text
+from utils.generator import ai_generator
 
 logger = setup_logger(__name__)
 
 class MentalHealthPredictor:
-    def __init__(self, model_path: str | None = None, vectorizer_path: str | None = None):
-        mp = model_path or settings.MODEL_PATH
-        vp = vectorizer_path or settings.VECTORIZER_PATH
-
+    def __init__(self):
         try:
-            # 1. Specialized Classifier
-            self.model = joblib.load(mp)
-            self.vectorizer = joblib.load(vp)
-            logger.info(f"Loaded classifier from {mp}")
-
+            # TIER 1 UPGRADE: Advanced Specialized Mental Health Transformer
+            # This model is specifically pre-trained on mental health texts.
+            logger.info("Loading Tier 1 Transformer Classifier (mental-health-classification)...")
+            self.classifier = pipeline(
+                "text-classification",
+                model="rabiaqayyum/bert-base-uncased-mental-health-classification",
+                device=-1  # Use CPU
+            )
+            
             # 2. Advanced Emotion Transformer
-            logger.info("Loading Advanced Transformer Model (distilbert-base-uncased-emotion)...")
-            self.ai_analyzer = pipeline(
+            logger.info("Loading Advanced Emotion Model (distilbert-base-uncased-emotion)...")
+            self.emotion_analyzer = pipeline(
                 "sentiment-analysis",
                 model="bhadresh-savani/distilbert-base-uncased-emotion",
                 device=-1  # Use CPU
             )
-            logger.info("Advanced Emotion Model loaded successfully.")
+            
+            logger.info("All Advanced AI Models loaded successfully.")
 
         except Exception as e:
             logger.error(f"Failed to load models: {e}")
@@ -42,45 +43,45 @@ class MentalHealthPredictor:
     def predict(self, text: str) -> dict[str, Any]:
         cleaned = clean_text(text)
 
-        # 1. Classify Risk (Specialized Model)
-        features = self.vectorizer.transform([cleaned])
-        custom_prediction = self.model.predict(features)[0]
-        custom_probs = self.model.predict_proba(features)[0]
-        custom_score = float(max(custom_probs))
+        # 1. Classify Risk using the Advanced Mental Health Transformer
+        # This model outputs labels like 'Normal', 'Depression', 'Suicidal', etc.
+        # We map these to our 'low', 'medium', 'high' risk levels.
+        raw_prediction = self.classifier(text)[0]
+        label = raw_prediction['label'].lower()
+        score = raw_prediction['score']
 
-        # 2. Analyze Emotion (Transformer)
-        ai_result = self.ai_analyzer(text)[0]
-        ai_label = ai_result['label']
-        ai_score = ai_result['score']
+        # Map Transformer labels to Risk Levels
+        risk_mapping = {
+            'normal': 'low',
+            'anxiety': 'medium',
+            'bipolar': 'medium',
+            'depression': 'high',
+            'personality disorder': 'high',
+            'suicidal': 'high'
+        }
+        final_risk = risk_mapping.get(label, 'medium')
 
-        # 3. Hybrid Risk Refinement
-        final_risk = custom_prediction
-        critical_emotions = ['sadness', 'fear', 'anger']
-        if ai_label in critical_emotions and ai_score > 0.8:
-            if custom_prediction == "low":
-                final_risk = "medium"
-            elif custom_prediction == "medium":
-                final_risk = "high"
+        # 2. Analyze Emotion
+        emotion_result = self.emotion_analyzer(text)[0]
+        emotion_label = emotion_result['label']
+        emotion_score = emotion_result['score']
 
-        # 4. Keyword Explainability
-        keywords = get_top_keywords(features, self.vectorizer)
-
-        # 5. GENERATIVE AI RESPONSE
-        # Generate a unique, empathetic response based on all detected data
+        # 3. GENERATIVE AI RESPONSE
+        # Keywords are now handled more naturally by the LLM prompt
         ai_generated_response = ai_generator.generate(
             risk=final_risk,
-            emotion=ai_label,
+            emotion=emotion_label,
             user_text=text,
-            keywords=keywords
+            keywords=[] # LLM handles extraction now
         )
 
-        logger.info(f"Analysis Complete - Risk: {final_risk}, Emotion: {ai_label}")
+        logger.info(f"Analysis Complete - Risk: {final_risk} (Label: {label}), Emotion: {emotion_label}")
 
         return {
             "risk": str(final_risk),
-            "score": round(float((custom_score + ai_score) / 2), 2),
-            "emotion": ai_label,
-            "keywords": keywords,
+            "score": round(float((score + emotion_score) / 2), 2),
+            "emotion": emotion_label,
+            "keywords": [label], # Use the detected clinical label as a primary keyword
             "ai_generated_response": ai_generated_response
         }
 

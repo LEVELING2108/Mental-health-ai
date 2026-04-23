@@ -43,7 +43,7 @@ def predict_mental_health(
                 risk_level=result["risk"],
                 confidence_score=result["score"],
                 emotion=result["emotion"],
-                keywords=",".join(result["keywords"]) if result["keywords"] else None,
+                keywords=result["keywords"][0] if result["keywords"] else None,
                 ai_response=result["ai_generated_response"]
             )
             db.add(mood_log)
