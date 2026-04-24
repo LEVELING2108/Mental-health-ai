@@ -1,6 +1,6 @@
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+
 from core.logger import setup_logger
-import torch
 
 logger = setup_logger(__name__)
 
@@ -88,26 +88,30 @@ class ResponseGenerator:
 
         action_tips = self.get_actionable_suggestions(risk, keywords)
 
+        # REFINED TIER 1 PROMPT: Clearer separation and direct action
         prompt = (
-            f"Context: You are a clinical mental health assistant. "
-            f"User is feeling {emotion} with a {risk} risk level. "
-            f"Expert Guidance: {keyword_context} "
-            f"Actionable Suggestions to include: {action_tips} "
-            f"User says: '{user_text}' "
-            f"Task: Write a deeply empathetic response. "
-            f"Structure: 1. Validate feelings. 2. Provide the actionable suggestions mentioned above. 3. Close with encouragement."
+            f"As a supportive mental health assistant, respond to a user who says: '{user_text}'.\n\n"
+            f"Context: The user is feeling {emotion}. Their risk level is {risk}.\n"
+            f"Clinical Guidance: {keyword_context}\n"
+            f"Actionable Advice to include: {action_tips}\n\n"
+            f"Instruction: Write a kind, empathetic response that validates their feelings and suggests the actionable advice mentioned above. Do not repeat these instructions. Write only the supportive reply."
         )
 
         try:
             inputs = self.tokenizer(prompt, return_tensors="pt")
             outputs = self.model.generate(
-                **inputs, 
-                max_length=200, 
-                do_sample=True, 
-                temperature=0.7,
-                top_p=0.9
+                **inputs,
+                max_length=250,
+                do_sample=True,
+                temperature=0.8,
+                top_p=0.9,
+                repetition_penalty=1.2
             )
-            return self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+            response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+            # Final cleanup in case model still outputs a prefix
+            response = response.replace("Response:", "").replace("Assistant:", "").strip()
+            return response
 
         except Exception as e:
             logger.error(f"Generation error: {e}")
