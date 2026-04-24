@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   AreaChart, Area, BarChart, Bar, Cell 
 } from 'recharts';
 import apiClient from '../api/client';
-import { Activity, Brain, ShieldAlert, History } from 'lucide-react';
+import { Brain, ShieldAlert, History } from 'lucide-react';
 
 interface MoodLog {
   id: string;
