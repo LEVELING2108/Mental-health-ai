@@ -25,9 +25,23 @@ def test_predict_mental_health():
     assert "response" in data
     assert "ai_generated_response" in data
 
-def test_predict_mental_health_empty():
-    response = client.post(
-        "/api/v1/predict/",
-        json={"text": ""}
+def test_predict_mental_health_authenticated():
+    # 1. Get a token
+    email = "predict_auth@example.com"
+    password = "testpassword123"
+    client.post("/api/v1/auth/register", json={"email": email, "password": password})
+    login_res = client.post(
+        "/api/v1/auth/login",
+        data={"username": email, "password": password}
     )
-    assert response.status_code == 422
+    token = login_res.json()["access_token"]
+
+    # 2. Predict with token
+    response = client.post(
+        "/api/v1/predict",
+        json={"text": "I feel much better today"},
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 200
+    assert "risk" in response.json()
+
