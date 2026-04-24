@@ -1,7 +1,6 @@
-
-from transformers import pipeline
-
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from core.logger import setup_logger
+import torch
 
 logger = setup_logger(__name__)
 
@@ -53,16 +52,14 @@ SUGGESTIONS = {
 
 class ResponseGenerator:
     def __init__(self):
-        logger.info("Initializing Generative LLM (google/flan-t5-base)...")
+        logger.info("Initializing Generative LLM (google/flan-t5-base) manually...")
         try:
-            self.generator = pipeline(
-                model="google/flan-t5-base",
-                device=-1 # CPU
-            )
+            self.tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-base")
+            self.model = AutoModelForSeq2SeqLM.from_pretrained("google/flan-t5-base")
             logger.info("Generative LLM loaded successfully.")
         except Exception as e:
             logger.error(f"Failed to load Generative LLM: {e}")
-            self.generator = None
+            self.model = None
 
     def get_actionable_suggestions(self, risk: str, keywords: list[str]) -> str:
         """Fetch concrete suggestions based on detected risk and keywords."""
@@ -72,21 +69,18 @@ class ResponseGenerator:
                 relevant_tips.extend(SUGGESTIONS[kw.lower()])
 
         if not relevant_tips:
-            # Fallback based on risk level
             if risk == "high":
                 relevant_tips = SUGGESTIONS["depression"]
             else:
                 relevant_tips = SUGGESTIONS["stress"]
 
-        # Return top 2 unique suggestions
         import random
         return " ".join(random.sample(list(set(relevant_tips)), min(2, len(relevant_tips))))
 
     def generate(self, risk: str, emotion: str, user_text: str, keywords: list[str]) -> str:
-        if not self.generator:
+        if not self.model:
             return "I am here to support you. Please consider speaking with a professional."
 
-        # Get specialized context and actionable tips
         keyword_context = ""
         for kw in keywords:
             if kw.lower() in KEYWORD_GUIDANCE:
@@ -94,7 +88,6 @@ class ResponseGenerator:
 
         action_tips = self.get_actionable_suggestions(risk, keywords)
 
-        # ELITE PROMPT: Explicitly instructs the AI to include the suggestions
         prompt = (
             f"Context: You are a clinical mental health assistant. "
             f"User is feeling {emotion} with a {risk} risk level. "
@@ -106,14 +99,15 @@ class ResponseGenerator:
         )
 
         try:
-            response = self.generator(
-                prompt,
-                max_length=150,
-                do_sample=True,
+            inputs = self.tokenizer(prompt, return_tensors="pt")
+            outputs = self.model.generate(
+                **inputs, 
+                max_length=200, 
+                do_sample=True, 
                 temperature=0.7,
                 top_p=0.9
             )
-            return response[0]['generated_text']
+            return self.tokenizer.decode(outputs[0], skip_special_tokens=True)
 
         except Exception as e:
             logger.error(f"Generation error: {e}")
