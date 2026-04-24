@@ -1,5 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
+
 from api.main import app
 
 client = TestClient(app)
@@ -10,7 +11,7 @@ def auth_header():
     email = "mood_test@example.com"
     password = "testpassword123"
     client.post("/api/v1/auth/register", json={"email": email, "password": password})
-    
+
     login_res = client.post(
         "/api/v1/auth/login",
         data={"username": email, "password": password}

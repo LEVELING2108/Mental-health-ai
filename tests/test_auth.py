@@ -1,12 +1,11 @@
-import pytest
+import time
+
 from fastapi.testclient import TestClient
+
 from api.main import app
-from db.models import User
-from core.database import SessionLocal
 
 client = TestClient(app)
 
-import time
 
 def test_register_user():
     email = f"test_{int(time.time())}@example.com"
