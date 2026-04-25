@@ -124,6 +124,22 @@ body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg-app); c
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
 
+.spinner-container { display: flex; align-items: center; justify-content: center; height: 100%; width: 100%; min-height: 200px; }
+.spinner { width: 32px; height: 32px; border: 3px solid rgba(59, 130, 246, 0.2); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Fix breathing circle sizing and color */
+.breathing-circle {
+  width: 180px !important; height: 180px !important; border-radius: 50%;
+  background: var(--primary); opacity: 0.2;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 4s ease-in-out; position: relative;
+}
+.breathing-circle.inhale { transform: scale(1.6); opacity: 0.7; background: #60a5fa; }
+.breathing-circle.hold { transform: scale(1.6); opacity: 0.7; background: #f59e0b; }
+.breathing-circle.exhale { transform: scale(1.0); opacity: 0.2; background: var(--primary); }
+.breathing-circle.rest { transform: scale(1.0); opacity: 0.1; background: #94a3b8; }
+
 /* Typing indicator */
 .typing-dots { display: flex; gap: 4px; padding: 0.5rem; }
 .typing-dots span { width: 6px; height: 6px; background: var(--text-muted); border-radius: 50%; animation: bounce 1.4s infinite; }
@@ -132,5 +148,5 @@ body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg-app); c
 @keyframes bounce { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }
 
 /* Shared components compatibility */
-.dashboard-container, .grounding-card { padding: 1rem; width: 100%; overflow-y: auto; }
+.dashboard-container, .grounding-card { padding: 1rem; width: 100%; overflow-y: auto; display: flex; flex-direction: column; height: 100%; }
 .dashboard-container h3 { margin-top: 0; }

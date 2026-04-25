@@ -62,6 +62,16 @@ export const Dashboard: React.FC = () => {
 
   if (loading) return <div className="spinner-container"><div className="spinner"></div></div>;
 
+  if (logs.length === 0) {
+    return (
+      <div className="empty-chat" style={{ padding: '4rem' }}>
+        <History size={48} color="#3b82f6" />
+        <h3>No journey data yet.</h3>
+        <p>Start chatting with the AI to see your emotional trends here!</p>
+      </div>
+    );
+  }
+
   return (
     <div className="dashboard-container fade-in">
       <div className="stats-grid">
