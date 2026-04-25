@@ -21,6 +21,7 @@ class User(Base):
     full_name = Column(String, nullable=True)
     bio = Column(Text, nullable=True)
     location = Column(String, nullable=True)
+    phone_number = Column(String, nullable=True)
     profile_image = Column(String, nullable=True) # Path to the image file
     
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { User, MapPin, FileText, Camera, Save, CheckCircle } from 'lucide-react';
+import { User, MapPin, FileText, Camera, Save, CheckCircle, Mail, Phone } from 'lucide-react';
 
 export const Profile: React.FC = () => {
   const { userEmail } = useAuth();
-  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -13,6 +12,7 @@ export const Profile: React.FC = () => {
   // Form State
   const [fullName, setFullName] = useState('');
   const [location, setLocation] = useState('');
+  const [phone, setPhone] = useState('');
   const [bio, setBio] = useState('');
   const [preview, setPreview] = useState<string | null>(null);
 
@@ -23,9 +23,9 @@ export const Profile: React.FC = () => {
   const fetchProfile = async () => {
     try {
       const res = await apiClient.get('/users/me');
-      setProfile(res.data);
       setFullName(res.data.full_name || '');
       setLocation(res.data.location || '');
+      setPhone(res.data.phone_number || '');
       setBio(res.data.bio || '');
       if (res.data.profile_image) {
         const baseUrl = import.meta.env.VITE_API_BASE_URL.replace('/api/v1', '');
@@ -42,20 +42,17 @@ export const Profile: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Show preview
     const reader = new FileReader();
     reader.onloadend = () => setPreview(reader.result as string);
     reader.readAsDataURL(file);
 
-    // Upload to server
     const formData = new FormData();
     formData.append('file', file);
 
     try {
-      const res = await apiClient.post('/users/me/photo', formData, {
+      await apiClient.post('/users/me/photo', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setProfile(res.data);
     } catch (err) {
       alert("Failed to upload photo.");
     }
@@ -65,12 +62,12 @@ export const Profile: React.FC = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      const res = await apiClient.patch('/users/me', {
+      await apiClient.patch('/users/me', {
         full_name: fullName,
         location: location,
+        phone_number: phone,
         bio: bio
       });
-      setProfile(res.data);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
@@ -97,12 +94,13 @@ export const Profile: React.FC = () => {
               <input type="file" hidden accept="image/*" onChange={handlePhotoUpload} />
             </label>
           </div>
-          <h3>{fullName || userEmail?.split('@')[0]}</h3>
-          <p className="profile-email">{userEmail}</p>
+          <h3>{fullName || "Add Your Name"}</h3>
+          <p className="profile-email-badge">{userEmail}</p>
         </div>
 
         <form onSubmit={handleUpdate} className="profile-form">
           <div className="form-grid">
+            {/* Full Name */}
             <div className="input-field">
               <label>Full Name</label>
               <div className="input-group">
@@ -111,11 +109,12 @@ export const Profile: React.FC = () => {
                   type="text" 
                   value={fullName} 
                   onChange={(e) => setFullName(e.target.value)} 
-                  placeholder="John Doe" 
+                  placeholder="e.g. Aarav Sharma" 
                 />
               </div>
             </div>
 
+            {/* Location */}
             <div className="input-field">
               <label>Location</label>
               <div className="input-group">
@@ -124,11 +123,40 @@ export const Profile: React.FC = () => {
                   type="text" 
                   value={location} 
                   onChange={(e) => setLocation(e.target.value)} 
-                  placeholder="New York, USA" 
+                  placeholder="e.g. Mumbai, Maharashtra" 
                 />
               </div>
             </div>
 
+            {/* Email (Read Only) */}
+            <div className="input-field">
+              <label>Email Address</label>
+              <div className="input-group disabled">
+                <Mail size={18} className="field-icon" />
+                <input 
+                  type="email" 
+                  value={userEmail || ''} 
+                  readOnly 
+                />
+              </div>
+              <span className="field-hint">Email cannot be changed</span>
+            </div>
+
+            {/* Phone Number */}
+            <div className="input-field">
+              <label>Phone Number</label>
+              <div className="input-group">
+                <Phone size={18} className="field-icon" />
+                <input 
+                  type="tel" 
+                  value={phone} 
+                  onChange={(e) => setPhone(e.target.value)} 
+                  placeholder="e.g. +91 98765 43210" 
+                />
+              </div>
+            </div>
+
+            {/* Bio */}
             <div className="input-field full-width">
               <label>Bio</label>
               <div className="input-group text-area-group">
@@ -136,7 +164,7 @@ export const Profile: React.FC = () => {
                 <textarea 
                   value={bio} 
                   onChange={(e) => setBio(e.target.value)} 
-                  placeholder="Tell us a bit about yourself..."
+                  placeholder="Share a bit about your journey..."
                   rows={4}
                 />
               </div>
@@ -146,7 +174,7 @@ export const Profile: React.FC = () => {
           <div className="profile-actions">
             <button type="submit" disabled={saving} className={`save-btn ${success ? 'success' : ''}`}>
               {saving ? <span className="spinner-small"></span> : (
-                success ? <><CheckCircle size={18} /> Saved!</> : <><Save size={18} /> Save Changes</>
+                success ? <><CheckCircle size={18} /> Saved Successfully</> : <><Save size={18} /> Update Profile</>
               )}
             </button>
           </div>
