@@ -135,6 +135,17 @@ const MainApp: React.FC = () => {
 
   return (
     <div className="app-shell">
+      {/* Mobile Top Header */}
+      <header className="mobile-header">
+        <div className="nav-brand">
+          <BrainCircuit size={24} color="#3b82f6" />
+          <span>Sentimental AI</span>
+        </div>
+        <button className="theme-icon-btn" onClick={toggleTheme}>
+          {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+        </button>
+      </header>
+
       <nav className="side-nav">
         <div className="nav-brand">
           <BrainCircuit color="#3b82f6" />
