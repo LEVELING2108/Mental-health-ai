@@ -6,117 +6,107 @@ from utils.rag import rag_engine
 
 logger = setup_logger(__name__)
 
-# Advanced Suggestion Engine
-SUGGESTIONS = {
+# ELITE SUGGESTION ENGINE (Decoupled for guaranteed quality)
+CLINICAL_TIPS = {
     "anxiety": [
-        "Try the '5-4-3-2-1' grounding technique: name 5 things you see, 4 you can touch, 3 you hear, 2 you can smell, and 1 you can taste.",
-        "Practice 4-7-8 breathing (inhale 4s, hold 7s, exhale 8s) to calm your nervous system.",
-        "Consider reducing caffeine and focusing on your immediate surroundings."
+        "Try the '5-4-3-2-1' grounding technique: Name 5 things you see, 4 you can touch, 3 you hear, 2 you can smell, and 1 you can taste.",
+        "Practice 4-7-8 breathing (inhale 4s, hold 7s, exhale 8s) to physically calm your nervous system.",
+        "Consider a 10-minute 'Mindful Walk'—focus strictly on the sensation of your feet hitting the ground."
     ],
     "depression": [
-        "Try a small 'Behavioral Activation' task: do one tiny thing you used to enjoy, like making a cup of tea or listening to a favorite song.",
-        "Step outside for just 5 minutes of fresh air and natural light.",
-        "Be gentle with yourself; your value isn't tied to your productivity today."
+        "Try 'Behavioral Activation': Choose one tiny task (like washing one dish) and do it now. Action often precedes motivation.",
+        "Step outside for 5 minutes of sunlight. It helps regulate your circadian rhythm and mood.",
+        "Write down three things you are grateful for, no matter how small they seem."
     ],
     "stress": [
-        "Try the Eisenhower Matrix: focus only on what is both urgent and important right now.",
-        "Do a 5-minute 'Brain Dump'—write everything down on paper to get it out of your head.",
-        "Set a 'hard stop' time for your responsibilities today to protect your rest."
+        "Use the Eisenhower Matrix: Focus only on what is both 'Urgent' and 'Important'. Delegate or drop the rest.",
+        "Set a 'Hard Stop' for your work today. Boundaries are essential for recovery.",
+        "Try 'Progressive Muscle Relaxation': Tense and release each muscle group from your toes to your head."
     ],
     "sleep": [
-        "Put away all screens 60 minutes before bed to allow your mind to settle.",
-        "Keep your room cool and dark to signal to your body that it's time for rest.",
-        "If thoughts are racing, write them down on a 'worry list' to handle tomorrow."
+        "The 10-3-2-1-0 Rule: No caffeine 10hrs before bed, no food 3hrs before, no work 2hrs before, no screens 1hr before.",
+        "If you can't sleep after 20 minutes, get out of bed and do a dull task in dim light until you feel sleepy.",
+        "Keep a 'Worry Journal' by your bed to dump thoughts so your brain can stop 'holding' them."
     ],
     "positive": [
-        "That is wonderful to hear! Consider taking a moment to practice gratitude for this feeling.",
-        "Why not share this positive energy with someone else today? A small kind gesture can go a long way.",
-        "Remember to savor this moment—take a mental snapshot of what's going well right now."
+        "This is a wonderful state to be in! Take a 'Mental Snapshot' of this moment to remember later.",
+        "Share this energy—send a quick appreciation text to someone you care about.",
+        "Reflect on what led to this good feeling. How can you create space for more moments like this?"
     ]
 }
 
 class ResponseGenerator:
     def __init__(self):
-        logger.info("Initializing Elite Generative AI (FLAN-T5-Base)...")
+        # TIER 1 UPGRADE: Using the LARGE model for significantly better reasoning
+        logger.info("Initializing Elite AI Brain (google/flan-t5-large)...")
         try:
-            self.tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-base")
-            self.model = AutoModelForSeq2SeqLM.from_pretrained("google/flan-t5-base")
-            logger.info("Generative AI loaded successfully.")
+            self.tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-large")
+            self.model = AutoModelForSeq2SeqLM.from_pretrained("google/flan-t5-large")
+            logger.info("Elite AI Brain loaded successfully.")
         except Exception as e:
-            logger.error(f"Failed to load AI: {e}")
+            logger.error(f"Failed to load Elite AI: {e}")
             self.model = None
 
-    def clean_clinical_text(self, text: str) -> str:
-        if not text:
-            return ""
-        text = re.sub(r'#.*?\n', '', text)
-        text = text.replace('*', '').replace('\n', ' ').strip()
-        return text[:200]
-
-    def get_tips(self, risk: str, emotion: str) -> str:
-        if emotion.lower() in ["joy", "love", "surprise"]:
-            return random.choice(SUGGESTIONS["positive"])
-        category = "stress"
-        if "anxious" in emotion or "fear" in emotion:
-            category = "anxiety"
-        elif "sad" in emotion or "depression" in risk:
-            category = "depression"
-        elif "sleep" in emotion:
-            category = "sleep"
-        return random.choice(SUGGESTIONS.get(category, SUGGESTIONS["stress"]))
+    def get_clinical_advice(self, risk: str, emotion: str) -> str:
+        """Guaranteed high-quality clinical advice."""
+        cat = "stress"
+        emo = emotion.lower()
+        if any(w in emo for w in ["joy", "love", "surprise"]): cat = "positive"
+        elif any(w in emo for w in ["sad", "fear", "anger"]) or risk == "high": cat = "depression" if "sad" in emo else "anxiety"
+        elif "sleep" in emo: cat = "sleep"
+        
+        return random.choice(CLINICAL_TIPS[cat])
 
     def generate(self, risk: str, emotion: str, user_text: str, keywords: list[str]) -> str:
         if not self.model:
-            return "I am here for you. Please consider reaching out to a professional for support."
+            return "I am here to support you. Please consider speaking with a professional."
 
+        # 1. Fetch data
         is_positive = emotion.lower() in ["joy", "love", "surprise"]
-        raw_context = rag_engine.query(user_text) if not is_positive else ""
-        clean_context = self.clean_clinical_text(raw_context)
-        action_tip = self.get_tips(risk, emotion)
+        raw_rag = rag_engine.query(user_text) if not is_positive else ""
+        # Clean RAG data (remove markdown)
+        clean_rag = re.sub(r'#.*?\n', '', raw_rag).replace('*', '').strip()[:200]
         
-        # FEW-SHOT PROMPT: Shows the model exactly how to behave
+        advice = self.get_clinical_advice(risk, emotion)
+
+        # 2. THE CONSTRAINED PROMPT (Prevents instruction leaking)
         prompt = (
-            "User: I am feeling so sad today.\n"
-            "Assistant: I am so sorry you are feeling this way. It is completely valid to feel sad right now. I suggest you try a small task you enjoy, and remember there is hope.\n"
-            "User: I am having a great day!\n"
-            "Assistant: That is wonderful to hear! I am so happy you are feeling good. Remember to savor this positive energy today!\n"
-            f"User: {user_text}\n"
-            f"Assistant:"
+            f"Provide a warm, 2-sentence empathetic response to a person who says: '{user_text}'. "
+            f"The person is feeling {emotion}. Be supportive and kind."
         )
 
         try:
             inputs = self.tokenizer(prompt, return_tensors="pt")
             outputs = self.model.generate(
                 **inputs, 
-                max_length=100, # Shorter is better for this model
+                max_length=150, 
                 do_sample=True, 
                 temperature=0.7, 
-                top_p=0.9,
-                repetition_penalty=1.5
+                repetition_penalty=2.0
             )
-            response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+            ai_empathy = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
             
-            # THE "IDIOT-PROOF" FILTER
-            # If the model leaks ANY instruction words, we block it and use the high-quality template
-            instruction_leak = any(word in response.lower() for word in [
-                "sentence", "instruction", "positive response", "negative response", 
-                "validate", "persona", "clinical", "user says"
-            ])
+            # 3. THE HYBRID CONSTRUCTOR (Guarantees Tier 1 Quality)
+            # We combine the AI's natural empathy with our guaranteed clinical advice
+            if is_positive:
+                final_response = f"{ai_empathy} It's so good to see you in this space. {advice}"
+            else:
+                final_response = (
+                    f"{ai_empathy} I hear how much you are carrying. "
+                    f"Based on what you've shared, I suggest you {advice.lower()} "
+                    f"{'Also, remember: ' + clean_rag if clean_rag else ''} "
+                    f"Please be gentle with yourself today."
+                )
 
-            if instruction_leak or len(response) < 15 or user_text.lower() in response.lower():
-                if is_positive:
-                    return f"It is so wonderful that you're feeling {emotion.lower()} today! {action_tip} Keep up this great energy!"
-                else:
-                    return (
-                        f"I want you to know that I truly hear you. It's completely valid to feel {emotion.lower()} right now. "
-                        f"I suggest you {action_tip.lower()} Please take it one small breath at a time. I'm here with you."
-                    )
-                
-            return response
+            # Final safety check against robotic output
+            if "instruction" in final_response.lower() or len(ai_empathy) < 10:
+                 return f"I truly hear you, and it's valid to feel {emotion.lower()} right now. I suggest you {advice.lower()} You don't have to face this alone."
+
+            return final_response
 
         except Exception as e:
-            logger.error(f"AI Error: {e}")
-            return f"I hear you, and I want to support you. It's valid to feel {emotion}. Please try to {action_tip.lower()}"
+            logger.error(f"Generation error: {e}")
+            return f"I am here for you. It's completely valid to feel {emotion.lower()}. I suggest you {advice.lower()}"
 
 # Singleton instance
 ai_generator = ResponseGenerator()
