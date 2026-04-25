@@ -190,7 +190,7 @@ export const Dashboard: React.FC = () => {
         <div className="chart-wrapper">
           <h3>Mental Health Risk Trend</h3>
           <p className="chart-sub">1: Low, 2: Medium, 3: High</p>
-          <div style={{ width: '100%', height: '250px' }}>
+          <div style={{ width: '100%', height: 300, minHeight: 300 }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
