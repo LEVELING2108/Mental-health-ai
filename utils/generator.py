@@ -1,8 +1,9 @@
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
-
 from core.logger import setup_logger
+from utils.rag import rag_engine  # New: RAG Engine
 
 logger = setup_logger(__name__)
+
 
 # Keyword-specific Knowledge Base for precise intervention
 KEYWORD_GUIDANCE = {
@@ -81,6 +82,11 @@ class ResponseGenerator:
         if not self.model:
             return "I am here to support you. Please consider speaking with a professional."
 
+        # 1. RAG: Search the Vector DB for clinically verified guidance
+        logger.info(f"Querying Vector DB for: {user_text}")
+        clinical_context = rag_engine.query(user_text)
+
+        # 2. Expert fallback guidance (from our existing dictionary)
         keyword_context = ""
         for kw in keywords:
             if kw.lower() in KEYWORD_GUIDANCE:
@@ -88,31 +94,33 @@ class ResponseGenerator:
 
         action_tips = self.get_actionable_suggestions(risk, keywords)
 
-        # REFINED TIER 1 PROMPT: Clearer separation and direct action
+        # 3. ULTIMATE PROMPT (Tier 0.1%): Combines Search + Classifier + Emotion + LLM
         prompt = (
-            f"As a supportive mental health assistant, respond to a user who says: '{user_text}'.\n\n"
-            f"Context: The user is feeling {emotion}. Their risk level is {risk}.\n"
-            f"Clinical Guidance: {keyword_context}\n"
-            f"Actionable Advice to include: {action_tips}\n\n"
-            f"Instruction: Write a kind, empathetic response that validates their feelings and suggests the actionable advice mentioned above. Do not repeat these instructions. Write only the supportive reply."
+            f"As an elite mental health assistant, respond to: '{user_text}'.\n\n"
+            f"User Profile: Emotion: {emotion}, Risk: {risk}.\n"
+            f"Verified Clinical Knowledge (use this for your advice): {clinical_context}\n"
+            f"Additional Expert Context: {keyword_context}\n"
+            f"Specific Tips to include: {action_tips}\n\n"
+            f"Instruction: Generate a deeply kind and empathetic response. "
+            f"Start by validating their experience. Then, provide the specific advice from the 'Clinical Knowledge' and 'Tips' sections above. "
+            f"Ensure the tone is warm and non-judgmental. Do not mention that you are an AI or searching a database."
         )
 
         try:
             inputs = self.tokenizer(prompt, return_tensors="pt")
             outputs = self.model.generate(
-                **inputs,
-                max_length=250,
-                do_sample=True,
-                temperature=0.8,
+                **inputs, 
+                max_length=300, 
+                do_sample=True, 
+                temperature=0.75,
                 top_p=0.9,
                 repetition_penalty=1.2
             )
             response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-            # Final cleanup in case model still outputs a prefix
+            # Refinement cleanup
             response = response.replace("Response:", "").replace("Assistant:", "").strip()
             return response
-
         except Exception as e:
             logger.error(f"Generation error: {e}")
             return "I'm sorry, I'm having trouble finding the words right now, but I want you to know I'm listening and I care."
