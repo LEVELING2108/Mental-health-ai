@@ -82,44 +82,35 @@ class ResponseGenerator:
         if not self.model:
             return "I am here to support you. Please consider speaking with a professional."
 
-        # 1. RAG: Search the Vector DB for clinically verified guidance
-        logger.info(f"Querying Vector DB for: {user_text}")
+        # 1. RAG: Search the Vector DB
         clinical_context = rag_engine.query(user_text)
-
-        # 2. Expert fallback guidance (from our existing dictionary)
-        keyword_context = ""
-        for kw in keywords:
-            if kw.lower() in KEYWORD_GUIDANCE:
-                keyword_context += KEYWORD_GUIDANCE[kw.lower()] + " "
-
+        
+        # 2. Expert tips
         action_tips = self.get_actionable_suggestions(risk, keywords)
 
-        # 3. ULTIMATE PROMPT (Tier 0.1%): Combines Search + Classifier + Emotion + LLM
+        # 3. STREAMLINED PROMPT (FLAN-T5 optimized)
         prompt = (
-            f"As an elite mental health assistant, respond to: '{user_text}'.\n\n"
-            f"User Profile: Emotion: {emotion}, Risk: {risk}.\n"
-            f"Verified Clinical Knowledge (use this for your advice): {clinical_context}\n"
-            f"Additional Expert Context: {keyword_context}\n"
-            f"Specific Tips to include: {action_tips}\n\n"
-            f"Instruction: Generate a deeply kind and empathetic response. "
-            f"Start by validating their experience. Then, provide the specific advice from the 'Clinical Knowledge' and 'Tips' sections above. "
-            f"Ensure the tone is warm and non-judgmental. Do not mention that you are an AI or searching a database."
+            f"Question: How should a mental health assistant respond to: '{user_text}'?\n"
+            f"Context: User is {emotion}. Verified Advice: {clinical_context}. Tips: {action_tips}.\n"
+            f"Answer: Provide a warm, empathetic validation and include the advice above."
         )
 
         try:
             inputs = self.tokenizer(prompt, return_tensors="pt")
             outputs = self.model.generate(
                 **inputs, 
-                max_length=300, 
+                max_length=200, 
                 do_sample=True, 
-                temperature=0.75,
+                temperature=0.8,
                 top_p=0.9,
-                repetition_penalty=1.2
+                repetition_penalty=1.5
             )
             response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-            # Refinement cleanup
-            response = response.replace("Response:", "").replace("Assistant:", "").strip()
+            
+            # If the model echoes the user text exactly, provide a high-quality fallback
+            if user_text.lower().strip() in response.lower():
+                return f"I'm truly sorry you're going through this. It sounds like you're dealing with a lot of weight. {action_tips} Please remember you don't have to carry this alone."
+                
             return response
         except Exception as e:
             logger.error(f"Generation error: {e}")
