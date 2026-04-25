@@ -1,13 +1,15 @@
 import os
-import uuid
 import shutil
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+import uuid
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
-from api.schemas.user import UserOut, UserUpdate
+
 from api.deps import get_current_user
+from api.schemas.user import UserOut, UserUpdate
 from core.database import get_db
-from db.models import User
 from core.logger import setup_logger
+from db.models import User
 
 router = APIRouter()
 logger = setup_logger(__name__)
@@ -27,7 +29,7 @@ def update_user_me(
     update_data = user_update.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(current_user, field, value)
-    
+
     db.add(current_user)
     db.commit()
     db.refresh(current_user)
@@ -60,7 +62,7 @@ async def upload_profile_photo(
     if current_user.profile_image and os.path.exists(current_user.profile_image):
         try:
             os.remove(current_user.profile_image)
-        except:
+        except Exception:
             pass
 
     # Update DB
@@ -68,5 +70,5 @@ async def upload_profile_photo(
     db.add(current_user)
     db.commit()
     db.refresh(current_user)
-    
+
     return current_user

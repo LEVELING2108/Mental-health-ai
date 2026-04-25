@@ -79,7 +79,7 @@ const MainApp: React.FC = () => {
           console.error("Data loading error", err);
         }
       };
-      loadInitialData();
+      void loadInitialData();
     }
   }, [isAuthenticated, view]);
 
@@ -114,7 +114,7 @@ const MainApp: React.FC = () => {
       };
       setMessages(prev => [...prev, aiMsg]);
     } catch (err: any) {
-      setError("AI connection interrupted.");
+      console.error("AI connection interrupted.", err);
     } finally {
       setLoading(false);
     }

@@ -1,13 +1,14 @@
+--index-url https://download.pytorch.org/whl/cpu
 streamlit
-fastapi
-uvicorn
+fastapi>=0.136.1
+uvicorn>=0.46.0
 pandas
 scikit-learn
 joblib
 python-multipart
 pydantic-settings
-transformers
-torch --index-url https://download.pytorch.org/whl/cpu
+transformers>=5.6.2
+torch
 sqlalchemy
 alembic
 passlib

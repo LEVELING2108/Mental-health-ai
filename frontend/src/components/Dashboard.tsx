@@ -43,7 +43,7 @@ export const Dashboard: React.FC = () => {
         setLoading(false);
       }
     };
-    fetchHistory();
+    void fetchHistory();
   }, []);
 
   const reverseLogs = [...logs].reverse();

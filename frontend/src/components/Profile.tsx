@@ -17,7 +17,7 @@ export const Profile: React.FC = () => {
   const [preview, setPreview] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchProfile();
+    void fetchProfile();
   }, []);
 
   const fetchProfile = async () => {

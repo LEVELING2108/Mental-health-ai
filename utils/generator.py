@@ -1,6 +1,8 @@
 import random
 import re
+
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+
 from core.logger import setup_logger
 from utils.rag import rag_engine
 
@@ -46,7 +48,8 @@ class ResponseGenerator:
             logger.error(f"Failed to load Elite AI: {e}")
             self.model = None
 
-    def get_clinical_advice(self, risk: str, emotion: str) -> str:
+    @staticmethod
+    def get_clinical_advice(risk: str, emotion: str) -> str:
         cat = "stress"
         emo = emotion.lower()
         if any(w in emo for w in ["joy", "love", "surprise"]):
@@ -57,7 +60,7 @@ class ResponseGenerator:
             cat = "sleep"
         return random.choice(CLINICAL_TIPS[cat])
 
-    def generate(self, risk: str, emotion: str, user_text: str, keywords: list[str], history: list[dict] = None) -> str:
+    def generate(self, risk: str, emotion: str, user_text: str, history: list[dict] = None) -> str:
         if not self.model:
             return "I am here to support you. Please consider speaking with a professional."
 
@@ -67,7 +70,7 @@ class ResponseGenerator:
         clean_rag = re.sub(r'#.*?\n', '', raw_rag).replace('*', '').strip()[:200]
         advice = self.get_clinical_advice(risk, emotion)
 
-        # 2. Format History for Context (Last 3 exchanges)
+        # 2. Format History for Context
         history_str = ""
         if history:
             recent = history[-4:]
@@ -86,15 +89,15 @@ class ResponseGenerator:
         try:
             inputs = self.tokenizer(prompt, return_tensors="pt")
             outputs = self.model.generate(
-                **inputs, 
-                max_length=200, 
-                do_sample=True, 
-                temperature=0.75, 
+                **inputs,
+                max_length=200,
+                do_sample=True,
+                temperature=0.75,
                 repetition_penalty=2.5
             )
             ai_empathy = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
             ai_empathy = ai_empathy.replace("Counselor:", "").strip()
-            
+
             # 4. Hybrid Constructor
             if is_positive:
                 final_response = f"{ai_empathy} {advice}"
