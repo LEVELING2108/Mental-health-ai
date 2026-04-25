@@ -123,7 +123,21 @@ body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg-app); c
 .input-field label { font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
 .input-group { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; background: var(--bg-input); border: 1px solid var(--border); border-radius: 0.75rem; }
 .input-group input { border: none; background: transparent; outline: none; flex: 1; color: var(--text-main); font-size: 1rem; }
-.select-field { border: none; background: transparent; outline: none; flex: 1; color: var(--text-main); font-size: 1rem; cursor: pointer; appearance: none; }
+.select-field { 
+  border: none; 
+  background: transparent; 
+  outline: none; 
+  flex: 1; 
+  color: var(--text-main); 
+  font-size: 1rem; 
+  cursor: pointer; 
+  appearance: auto; /* Restore default arrow for better UX */
+}
+
+.select-field option {
+  background-color: var(--bg-card);
+  color: var(--text-main);
+}
 .input-group.disabled { opacity: 0.6; background: var(--bg-app); cursor: not-allowed; }
 .field-hint { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.2rem; }
 .full-width { grid-column: 1 / -1; }
