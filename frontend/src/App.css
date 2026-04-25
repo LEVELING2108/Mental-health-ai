@@ -198,6 +198,14 @@ body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg-app); c
 .stat-card.green::after { background: var(--risk-low); }
 .stat-card.red::after { background: var(--risk-high); }
 
+.stat-card.low { background: #f0fdf4; border-color: #bcf0da; }
+.stat-card.medium { background: #fffbeb; border-color: #fde68a; }
+.stat-card.high { background: #fef2f2; border-color: #fecaca; }
+
+[data-theme='dark'] .stat-card.low { background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.2); }
+[data-theme='dark'] .stat-card.medium { background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.2); }
+[data-theme='dark'] .stat-card.high { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); }
+
 .stat-icon { 
   padding: 0.75rem; 
   border-radius: 1rem; 
