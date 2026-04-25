@@ -73,6 +73,17 @@ class MentalHealthPredictor:
             history=history,
             gender=gender
         )
+
+        logger.info(f"Analysis Complete - Risk: {final_risk} (Detected: {label}), Emotion: {emotion_label}")
+
+        return {
+            "risk": str(final_risk),
+            "score": round(float((score + emotion_score) / 2), 2),
+            "emotion": emotion_label,
+            "keywords": [label],
+            "ai_generated_response": ai_generated_response
+        }
+
 if __name__ == "__main__":
     predictor = MentalHealthPredictor()
     print(predictor.predict("I feel very lonely and sad"))

@@ -86,18 +86,27 @@ class ResponseGenerator:
             recent = history[-3:]
             history_str = "\n".join([f"{'User' if h['role'] == 'user' else 'Counselor'}: {h['content']}" for h in recent])
 
-        # 3. ELITE COUNSELOR PROMPT (Infused with Gender Awareness)
+        # 3. WORLD-CLASS COUNSELOR PROMPT (Few-Shot & Highly Tuned)
         gender_context = f"The user is {gender}." if gender else "The user's gender is unknown."
+        
+        # Few-shot examples drastically improve FLAN-T5's conversational ability
+        examples = (
+            "Example 1:\n"
+            "User: I am so stressed I can't sleep.\n"
+            "Counselor: I hear you, and it's exhausting when your brain refuses to hit the 'off' switch. Life sometimes feels like a treadmill we can't step off, doesn't it? Let's try putting screens away an hour before bed tonight. You don't have to figure it all out today.\n\n"
+            "Example 2:\n"
+            "User: I feel like a failure.\n"
+            "Counselor: I'm so sorry that heavy thought is weighing on you right now, but please know your worth isn't tied to today's productivity. Even the best of us have days where just showing up is a victory. Let's practice some self-compassion. I'm right here with you.\n\n"
+        )
+
         prompt = (
-            f"Role: You are a warm, wise, and slightly witty clinical counselor.\n"
+            f"Role: You are a warm, wise, and slightly witty clinical counselor. Always respond with deep empathy, validation, and a gentle, consoling tone.\n"
             f"User Identity: {gender_context}\n"
-            f"Goal: Console the user and offer a gentle perspective.\n"
+            f"Advice to seamlessly weave in: {advice}\n"
+            f"Clinical Context: {clean_rag}\n\n"
+            f"{examples}"
             f"History:\n{history_str}\n"
             f"User: {user_text}\n"
-            f"Emotion: {emotion}, Risk: {risk}.\n\n"
-            f"Task: Respond in 2-3 kind sentences. Validate them first using appropriate gender terms if needed. "
-            f"If appropriate, use a tiny bit of gentle humour. "
-            f"Always end with a consoling thought. Do not be robotic.\n\n"
             f"Counselor:"
         )
 
@@ -105,10 +114,13 @@ class ResponseGenerator:
             inputs = self.tokenizer(prompt, return_tensors="pt")
             outputs = self.model.generate(
                 **inputs, 
-                max_length=200, 
+                max_length=200,
+                min_length=30,
                 do_sample=True, 
-                temperature=0.85, # Higher temp for more "human" flair
-                repetition_penalty=2.5
+                temperature=0.8, # Perfect balance of warmth and coherence
+                top_p=0.92,
+                repetition_penalty=1.2, # Reduced to prevent grammatical breaking
+                no_repeat_ngram_size=3 # Prevents the AI from looping phrases
             )
             ai_empathy = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
             ai_empathy = ai_empathy.replace("Counselor:", "").strip()
@@ -117,19 +129,18 @@ class ResponseGenerator:
             if is_positive:
                 final_response = f"{ai_empathy} It's a breath of fresh air to see you feeling this way! {advice}"
             else:
-                final_response = (
-                    f"{ai_empathy} Remember, we're navigating this together. "
-                    f"A small step for today: {advice.lower()} "
-                    f"{'Plus, a little wisdom from the books: ' + clean_rag if clean_rag else ''} "
-                    f"You're doing better than you think."
-                )
+                # If the AI didn't manage to weave in the advice naturally, we append it smoothly
+                if advice[:10].lower() not in ai_empathy.lower():
+                    final_response = f"{ai_empathy} As a small step for today, I'd suggest this: {advice} {'Also, a gentle reminder: ' + clean_rag if clean_rag else ''}"
+                else:
+                    final_response = f"{ai_empathy} {'Also, a gentle reminder: ' + clean_rag if clean_rag else ''}"
 
             # Reliability Safety
-            if len(ai_empathy) < 15 or "instruction" in final_response.lower():
+            if len(ai_empathy) < 15 or "instruction" in final_response.lower() or "example" in final_response.lower():
                  return (
                      f"I truly hear you, and it's valid to feel {emotion.lower()} right now. "
                      f"Life can be a bit of a chaotic puzzle sometimes, can't it? "
-                     f"Let's try one small thing: {advice.lower()} I'm here with you."
+                     f"Let's try one small thing today: {advice.lower()} I'm here with you."
                  )
 
             return final_response
