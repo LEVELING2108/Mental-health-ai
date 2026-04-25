@@ -161,27 +161,25 @@ export const Dashboard: React.FC = () => {
       </div>
 
       <div className="stats-grid">
-        <div className="stat-card">
+        <div className="stat-card blue">
           <History className="stat-icon blue" />
           <div className="stat-content">
             <span className="stat-label">Total Entries</span>
             <span className="stat-value">{logs.length}</span>
           </div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card green">
           <Brain className="stat-icon green" />
           <div className="stat-content">
             <span className="stat-label">Common Emotion</span>
-            <span className="stat-value">
-              {barData.length > 0 ? barData.reduce((a, b) => a.value > b.value ? a : b).name : 'N/A'}
-            </span>
+            <span className="stat-value">{barData.length > 0 ? barData.reduce((a, b) => a.value > b.value ? a : b).name : 'N/A'}</span>
           </div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card red">
           <ShieldAlert className="stat-icon red" />
           <div className="stat-content">
             <span className="stat-label">Recent Risk</span>
-            <span className="stat-value">
+            <span className={`stat-value risk-${logs.length > 0 ? logs[0].risk_level.toLowerCase() : ''}`}>
               {logs.length > 0 ? logs[0].risk_level.toUpperCase() : 'N/A'}
             </span>
           </div>
