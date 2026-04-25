@@ -13,27 +13,37 @@ CLINICAL_TIPS = {
     "anxiety": [
         "Try the '5-4-3-2-1' grounding technique: Name 5 things you see, 4 you can touch, 3 you hear, 2 you can smell, and 1 you can taste.",
         "Practice 4-7-8 breathing (inhale 4s, hold 7s, exhale 8s) to physically calm your nervous system.",
-        "Maybe it's time for a 'Caffeine Vacation'—try switching to herbal tea for the next 24 hours."
+        "Maybe it's time for a 'Caffeine Vacation'—try switching to herbal tea for the next 24 hours.",
+        "When anxiety hits, try 'The Worry Window': Set aside exactly 15 minutes at 4 PM to worry, and postpone any anxious thoughts until then.",
+        "Try the 'Ice Water Reset'—splashing very cold water on your face can instantly lower your heart rate and ground you."
     ],
     "depression": [
         "Try 'Behavioral Activation': Choose one tiny task, like washing one single dish. Action often precedes motivation!",
         "Step outside for 5 minutes of sunlight. It's like a free battery recharge for your mood.",
-        "Write down one thing you're proud of today. Even if it's just 'I made it through the morning'."
+        "Write down one thing you're proud of today. Even if it's just 'I made it through the morning'.",
+        "Try the 'Opposite Action' skill: If you feel like isolating, call one person. If you feel like staying in bed, sit in a different chair for 5 minutes.",
+        "Connect with a 'Sensory Anchor'—touch something soft, or smell a scent you love, to bring yourself back to the present."
     ],
     "stress": [
         "Use the Eisenhower Matrix: Focus only on what is 'Urgent' and 'Important'. The rest can wait (really).",
         "Set a 'Hard Stop' for your responsibilities today. You aren't a machine, even machines need to cool down.",
-        "Try 'Progressive Muscle Relaxation': Tense and release each muscle group—start from your toes!"
+        "Try 'Progressive Muscle Relaxation': Tense and release each muscle group—start from your toes!",
+        "Try 'The 10-10-10 Rule': Ask yourself, will this matter in 10 minutes? 10 months? 10 years? This usually puts stress in perspective.",
+        "Identify your 'One Big Thing' for today and ignore everything else until that is done."
     ],
     "sleep": [
         "The 10-3-2-1-0 Rule: No caffeine 10hrs before, no food 3hrs, no work 2hrs, no screens 1hr before bed.",
         "If you can't sleep after 20 minutes, get out of bed. Your bed is for sleep, not for 'worry-olympics'.",
-        "Keep a 'Brain Dump' notebook by your bed. Write the worries down so your brain can let go."
+        "Keep a 'Brain Dump' notebook by your bed. Write the worries down so your brain can let go.",
+        "Try 'Cognitive Shuffling': Think of a random word (like 'BED'), then visualize items starting with B, then E, then D until you fall asleep.",
+        "Ensure your room is cool and your feet are warm; this temperature drop triggers your body's sleep mode."
     ],
     "positive": [
         "This is a wonderful space! Take a 'Mental Snapshot' of this feeling to look back on later.",
         "Share the wealth—send a quick 'thinking of you' text to a friend.",
-        "Savor this. You've worked hard to feel this good, so enjoy every bit of it!"
+        "Savor this. You've worked hard to feel this good, so enjoy every bit of it!",
+        "Write down what specifically triggered this good feeling. Is it something you can intentionally repeat next week?",
+        "Celebrate this win! Treat yourself to something small that makes you smile—you deserve it."
     ]
 }
 
