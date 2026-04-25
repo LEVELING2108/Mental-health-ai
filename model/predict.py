@@ -37,7 +37,7 @@ class MentalHealthPredictor:
             logger.error(f"Failed to load models: {e}")
             raise
 
-    def predict(self, text: str) -> dict[str, Any]:
+    def predict(self, text: str, history: list[dict] = None) -> dict[str, Any]:
         # 1. Zero-Shot Risk Classification
         # We provide the labels we want the model to look for.
         candidate_labels = ["normal", "anxiety", "depression", "suicidal", "stress", "bipolar"]
@@ -65,14 +65,14 @@ class MentalHealthPredictor:
         emotion_label = emotion_result['label']
         emotion_score = emotion_result['score']
 
-        # 3. GENERATIVE AI RESPONSE
+        # 3. GENERATIVE AI RESPONSE with History
         ai_generated_response = ai_generator.generate(
             risk=final_risk,
             emotion=emotion_label,
             user_text=text,
-            keywords=[label]
+            keywords=[label],
+            history=history
         )
-
         logger.info(f"Analysis Complete - Risk: {final_risk} (Detected: {label}), Emotion: {emotion_label}")
 
         return {

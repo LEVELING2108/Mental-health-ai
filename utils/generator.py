@@ -1,14 +1,12 @@
 import random
 import re
-
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
-
 from core.logger import setup_logger
 from utils.rag import rag_engine
 
 logger = setup_logger(__name__)
 
-# ELITE SUGGESTION ENGINE (Decoupled for guaranteed quality)
+# ELITE SUGGESTION ENGINE
 CLINICAL_TIPS = {
     "anxiety": [
         "Try the '5-4-3-2-1' grounding technique: Name 5 things you see, 4 you can touch, 3 you hear, 2 you can smell, and 1 you can taste.",
@@ -39,7 +37,6 @@ CLINICAL_TIPS = {
 
 class ResponseGenerator:
     def __init__(self):
-        # TIER 1 UPGRADE: Using the LARGE model for significantly better reasoning
         logger.info("Initializing Elite AI Brain (google/flan-t5-large)...")
         try:
             self.tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-large")
@@ -50,7 +47,6 @@ class ResponseGenerator:
             self.model = None
 
     def get_clinical_advice(self, risk: str, emotion: str) -> str:
-        """Guaranteed high-quality clinical advice."""
         cat = "stress"
         emo = emotion.lower()
         if any(w in emo for w in ["joy", "love", "surprise"]):
@@ -59,59 +55,60 @@ class ResponseGenerator:
             cat = "depression" if "sad" in emo else "anxiety"
         elif "sleep" in emo:
             cat = "sleep"
-
         return random.choice(CLINICAL_TIPS[cat])
 
-    def generate(self, risk: str, emotion: str, user_text: str, keywords: list[str]) -> str:
+    def generate(self, risk: str, emotion: str, user_text: str, keywords: list[str], history: list[dict] = None) -> str:
         if not self.model:
             return "I am here to support you. Please consider speaking with a professional."
 
-        # 1. Fetch data
+        # 1. Fetch Context
         is_positive = emotion.lower() in ["joy", "love", "surprise"]
         raw_rag = rag_engine.query(user_text) if not is_positive else ""
-        # Clean RAG data (remove markdown)
         clean_rag = re.sub(r'#.*?\n', '', raw_rag).replace('*', '').strip()[:200]
-
         advice = self.get_clinical_advice(risk, emotion)
 
-        # 2. THE CONSTRAINED PROMPT (Prevents instruction leaking)
+        # 2. Format History for Context (Last 3 exchanges)
+        history_str = ""
+        if history:
+            recent = history[-4:]
+            history_str = "\n".join([f"{'User' if h['role'] == 'user' else 'Counselor'}: {h['content']}" for h in recent])
+
+        # 3. ELITE MULTI-TURN PROMPT
         prompt = (
-            f"Provide a warm, 2-sentence empathetic response to a person who says: '{user_text}'. "
-            f"The person is feeling {emotion}. Be supportive and kind."
+            f"Persona: You are a warm clinical counselor.\n"
+            f"History:\n{history_str}\n"
+            f"User: {user_text}\n"
+            f"Context: Feeling {emotion}, Risk {risk}.\n"
+            f"Instruction: Respond to the user in 2 kind sentences. Do not repeat their words. Continue the dialogue naturally.\n\n"
+            f"Counselor:"
         )
 
         try:
             inputs = self.tokenizer(prompt, return_tensors="pt")
             outputs = self.model.generate(
-                **inputs,
-                max_length=150,
-                do_sample=True,
-                temperature=0.7,
-                repetition_penalty=2.0
+                **inputs, 
+                max_length=200, 
+                do_sample=True, 
+                temperature=0.75, 
+                repetition_penalty=2.5
             )
             ai_empathy = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-            # 3. THE HYBRID CONSTRUCTOR (Guarantees Tier 1 Quality)
-            # We combine the AI's natural empathy with our guaranteed clinical advice
+            ai_empathy = ai_empathy.replace("Counselor:", "").strip()
+            
+            # 4. Hybrid Constructor
             if is_positive:
-                final_response = f"{ai_empathy} It's so good to see you in this space. {advice}"
+                final_response = f"{ai_empathy} {advice}"
             else:
-                final_response = (
-                    f"{ai_empathy} I hear how much you are carrying. "
-                    f"Based on what you've shared, I suggest you {advice.lower()} "
-                    f"{'Also, remember: ' + clean_rag if clean_rag else ''} "
-                    f"Please be gentle with yourself today."
-                )
+                final_response = f"{ai_empathy} Based on our conversation, I suggest you {advice.lower()} {'Also: ' + clean_rag if clean_rag else ''}"
 
-            # Final safety check against robotic output
-            if "instruction" in final_response.lower() or len(ai_empathy) < 10:
-                 return f"I truly hear you, and it's valid to feel {emotion.lower()} right now. I suggest you {advice.lower()} You don't have to face this alone."
+            if len(ai_empathy) < 10 or "instruction" in final_response.lower():
+                 return f"I truly hear you. It's completely valid to feel {emotion.lower()} right now. I suggest you {advice.lower()}"
 
             return final_response
 
         except Exception as e:
             logger.error(f"Generation error: {e}")
-            return f"I am here for you. It's completely valid to feel {emotion.lower()}. I suggest you {advice.lower()}"
+            return f"I am here for you. It's valid to feel {emotion.lower()}. I suggest you {advice.lower()}"
 
 # Singleton instance
 ai_generator = ResponseGenerator()

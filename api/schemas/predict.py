@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 
 class SupportRequest(BaseModel):
     text: str = Field(..., description="User input text expressing their feelings.", min_length=1)
+    history: list[dict] | None = Field(None, description="Previous messages in the session for context.")
 
 class SupportResponse(BaseModel):
     risk: str = Field(..., description="Calculated risk level (low, medium, high).")

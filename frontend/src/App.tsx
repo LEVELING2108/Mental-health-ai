@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
@@ -9,8 +9,16 @@ import apiClient from './api/client';
 import { 
   MessageSquare, LayoutDashboard, LogOut, User as UserIcon, 
   ChevronRight, BrainCircuit, HeartHandshake, ShieldCheck, 
-  Mic, MicOff, Sun, Moon, Wind 
+  Mic, MicOff, Sun, Moon, Wind, Send, Sparkles
 } from 'lucide-react';
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  risk?: string;
+  emotion?: string;
+  timestamp: Date;
+}
 
 const MainApp: React.FC = () => {
   const { userEmail, logout, isAuthenticated } = useAuth();
@@ -19,50 +27,83 @@ const MainApp: React.FC = () => {
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   
   // Chat State
-  const [text, setText] = useState('');
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputText, setInputText] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Voice Recognition Setup
+  // Auto-scroll to bottom of chat
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Load chat history from DB on mount
+  useEffect(() => {
+    if (isAuthenticated && view === 'chat') {
+      const loadHistory = async () => {
+        try {
+          const res = await apiClient.get('/moods/');
+          const history: ChatMessage[] = [];
+          // Convert DB logs to chat messages (limit to last 5 for UI clarity)
+          res.data.slice(0, 5).reverse().forEach((log: any) => {
+            history.push({ role: 'user', content: log.user_text, timestamp: new Date(log.created_at) });
+            history.push({ 
+              role: 'assistant', 
+              content: log.ai_response, 
+              risk: log.risk_level, 
+              emotion: log.emotion,
+              timestamp: new Date(log.created_at) 
+            });
+          });
+          setMessages(history);
+        } catch (err) {
+          console.error("Failed to load history", err);
+        }
+      };
+      loadHistory();
+    }
+  }, [isAuthenticated, view]);
+
   const startListening = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert("Your browser does not support voice recognition. Please try Chrome or Edge.");
+      alert("Browser not supported.");
       return;
     }
     const recognition = new SpeechRecognition();
-    recognition.lang = 'en-US';
     recognition.onstart = () => setIsListening(true);
     recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript;
-      setText(prev => prev + " " + transcript);
+      setInputText(prev => prev + " " + event.results[0][0].transcript);
     };
     recognition.onend = () => setIsListening(false);
     recognition.start();
   };
 
-  const handlePredict = async (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!text.trim()) return;
+    if (!inputText.trim()) return;
+
+    const userMsg: ChatMessage = { role: 'user', content: inputText, timestamp: new Date() };
+    setMessages(prev => [...prev, userMsg]);
+    const currentInput = inputText;
+    setInputText('');
     setLoading(true);
     setError(null);
-    setResult(null);
+
     try {
-      const response = await apiClient.post('/predict', { text });
-      setResult(response.data);
-      setText('');
+      const response = await apiClient.post('/predict', { text: currentInput });
+      const aiMsg: ChatMessage = {
+        role: 'assistant',
+        content: response.data.ai_generated_response,
+        risk: response.data.risk,
+        emotion: response.data.emotion,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, aiMsg]);
     } catch (err: any) {
-      console.error('Analysis Error:', err);
-      if (err.response) {
-        const detail = err.response.data?.detail;
-        setError(Array.isArray(detail) ? detail[0].msg : (detail || `Server Error: ${err.response.status}`));
-      } else if (err.request) {
-        setError('Network Error: The API is unreachable. Please ensure the backend is running on port 8001.');
-      } else {
-        setError(`Error: ${err.message}`);
-      }
+      setError("Communication lost with AI. Please check connection.");
     } finally {
       setLoading(false);
     }
@@ -126,77 +167,58 @@ const MainApp: React.FC = () => {
       </nav>
 
       <main className="content-area">
-        <header className="content-header">
-          <h2>
-            {view === 'chat' ? 'AI Support Session' : 
-             view === 'dashboard' ? 'Mental Health Dashboard' : 'Grounding Tool'}
-          </h2>
-          <p>
-            {view === 'chat' ? 'Share your thoughts with our hybrid AI system.' : 
-             view === 'dashboard' ? 'Visualizing your emotional trends over time.' : 'Practice breathing to center yourself.'}
-          </p>
-        </header>
-
         {view === 'chat' && (
-          <div className="chat-container">
-            <div className="chat-main">
-              {result && (
-                <div className="results-section fade-in">
-                  <div className="results-grid">
-                    <div className="result-card">
-                      <h3>Risk Level</h3>
-                      <div className={`risk-badge risk-${result.risk.toLowerCase()}`}>
-                        {result.risk.toUpperCase()}
-                      </div>
-                      <p className="confidence">Confidence: {(result.score * 100).toFixed(0)}%</p>
-                    </div>
-                    <div className="result-card">
-                      <h3>Detected Emotion</h3>
-                      <div className="emotion-display">
-                        <span className="emotion-text">{result.emotion.toUpperCase()}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="support-message ai-gen">
-                    <h3>✨ AI Personalized Support</h3>
-                    <p>{result.ai_generated_response}</p>
-                  </div>
+          <div className="chat-interface">
+            <div className="chat-window">
+              {messages.length === 0 && (
+                <div className="empty-chat">
+                  <Sparkles size={48} color="#3b82f6" />
+                  <h3>Your safe space is ready.</h3>
+                  <p>How are you feeling right now? I'm here to listen and support you.</p>
                 </div>
               )}
-              <form className="chat-input-area" onSubmit={handlePredict}>
-                <div className="textarea-wrapper">
-                  <textarea 
-                    value={text}
-                    onChange={(e) => setText(e.target.value)}
-                    placeholder="How are you feeling right now?"
-                    rows={3}
-                  />
-                  <button 
-                    type="button" 
-                    className={`mic-btn ${isListening ? 'listening' : ''}`}
-                    onClick={startListening}
-                  >
-                    {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+              {messages.map((msg, idx) => (
+                <div key={idx} className={`message-bubble ${msg.role}`}>
+                  <div className="bubble-content">
+                    <p>{msg.content}</p>
+                    {msg.role === 'assistant' && msg.risk && (
+                      <div className="bubble-meta">
+                        <span className={`mini-badge risk-${msg.risk.toLowerCase()}`}>{msg.risk}</span>
+                        <span className="mini-badge emotion">{msg.emotion}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {loading && <div className="message-bubble assistant loading"><div className="typing-dots"><span>.</span><span>.</span><span>.</span></div></div>}
+              <div ref={chatEndRef} />
+            </div>
+
+            <form className="chat-input-wrapper" onSubmit={handleSendMessage}>
+              <div className="input-box">
+                <textarea 
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  placeholder="Type or speak your thoughts..."
+                  rows={1}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage(e);
+                    }
+                  }}
+                />
+                <div className="input-actions">
+                  <button type="button" className={`icon-btn ${isListening ? 'listening' : ''}`} onClick={startListening}>
+                    {isListening ? <MicOff size={18} /> : <Mic size={18} />}
+                  </button>
+                  <button type="submit" className="send-btn" disabled={loading || !inputText.trim()}>
+                    <Send size={18} />
                   </button>
                 </div>
-                <button type="submit" className="analyze-btn" disabled={loading || !text.trim()}>
-                  {loading ? 'Analyzing...' : <><ChevronRight /> <span>Analyze</span></>}
-                </button>
-              </form>
+              </div>
               {error && <p className="chat-error">{error}</p>}
-            </div>
-            <aside className="chat-info">
-              <div className="info-card">
-                <HeartHandshake color="#3b82f6" />
-                <h4>How it works</h4>
-                <p>We use zero-shot classification for risk and a transformer model for emotional nuance.</p>
-              </div>
-              <div className="info-card">
-                <ShieldCheck color="#10b981" />
-                <h4>Your Privacy</h4>
-                <p>Your logs are encrypted and stored securely in your personal profile.</p>
-              </div>
-            </aside>
+            </form>
           </div>
         )}
         {view === 'dashboard' && <Dashboard />}
