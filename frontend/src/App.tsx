@@ -5,6 +5,7 @@ import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { LoginForm, RegisterForm } from './components/Auth';
 import { Dashboard } from './components/Dashboard';
 import { BreathingExercise } from './components/Grounding';
+import { Profile } from './components/Profile';
 import apiClient from './api/client';
 import { 
   MessageSquare, LayoutDashboard, LogOut, User as UserIcon, 
@@ -23,9 +24,13 @@ interface ChatMessage {
 const MainApp: React.FC = () => {
   const { userEmail, logout, isAuthenticated } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const [view, setView] = useState<'chat' | 'dashboard' | 'grounding'>('chat');
+  const [view, setView] = useState<'chat' | 'dashboard' | 'grounding' | 'profile'>('chat');
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   
+  // User Data State
+  const [userData, setUserData] = useState<any>(null);
+  const [profilePic, setProfilePic] = useState<string | null>(null);
+
   // Chat State
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
@@ -34,49 +39,56 @@ const MainApp: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  // Helper to get base URL
+  const getBaseUrl = () => import.meta.env.VITE_API_BASE_URL.replace('/api/v1', '');
+
   // Auto-scroll to bottom of chat
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Load chat history from DB on mount
+  // Load user data and history
   useEffect(() => {
-    if (isAuthenticated && view === 'chat') {
-      const loadHistory = async () => {
+    if (isAuthenticated) {
+      const loadInitialData = async () => {
         try {
-          const res = await apiClient.get('/moods/');
-          const history: ChatMessage[] = [];
-          // Convert DB logs to chat messages (limit to last 5 for UI clarity)
-          res.data.slice(0, 5).reverse().forEach((log: any) => {
-            history.push({ role: 'user', content: log.user_text, timestamp: new Date(log.created_at) });
-            history.push({ 
-              role: 'assistant', 
-              content: log.ai_response, 
-              risk: log.risk_level, 
-              emotion: log.emotion,
-              timestamp: new Date(log.created_at) 
+          // 1. Load Profile
+          const profRes = await apiClient.get('/users/me');
+          setUserData(profRes.data);
+          if (profRes.data.profile_image) {
+            setProfilePic(`${getBaseUrl()}/${profRes.data.profile_image}`);
+          }
+
+          // 2. Load History if in chat view
+          if (view === 'chat') {
+            const res = await apiClient.get('/moods/');
+            const history: ChatMessage[] = [];
+            res.data.slice(0, 10).reverse().forEach((log: any) => {
+              history.push({ role: 'user', content: log.user_text, timestamp: new Date(log.created_at) });
+              history.push({ 
+                role: 'assistant', 
+                content: log.ai_response, 
+                risk: log.risk_level, 
+                emotion: log.emotion,
+                timestamp: new Date(log.created_at) 
+              });
             });
-          });
-          setMessages(history);
+            setMessages(history);
+          }
         } catch (err) {
-          console.error("Failed to load history", err);
+          console.error("Data loading error", err);
         }
       };
-      loadHistory();
+      loadInitialData();
     }
   }, [isAuthenticated, view]);
 
   const startListening = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert("Browser not supported.");
-      return;
-    }
+    if (!SpeechRecognition) return alert("Browser not supported.");
     const recognition = new SpeechRecognition();
     recognition.onstart = () => setIsListening(true);
-    recognition.onresult = (event: any) => {
-      setInputText(prev => prev + " " + event.results[0][0].transcript);
-    };
+    recognition.onresult = (event: any) => setInputText(prev => prev + " " + event.results[0][0].transcript);
     recognition.onend = () => setIsListening(false);
     recognition.start();
   };
@@ -90,7 +102,6 @@ const MainApp: React.FC = () => {
     const currentInput = inputText;
     setInputText('');
     setLoading(true);
-    setError(null);
 
     try {
       const response = await apiClient.post('/predict', { text: currentInput });
@@ -103,7 +114,7 @@ const MainApp: React.FC = () => {
       };
       setMessages(prev => [...prev, aiMsg]);
     } catch (err: any) {
-      setError("Communication lost with AI. Please check connection.");
+      setError("AI connection interrupted.");
     } finally {
       setLoading(false);
     }
@@ -161,6 +172,9 @@ const MainApp: React.FC = () => {
           <button className={view === 'grounding' ? 'active' : ''} onClick={() => setView('grounding')}>
             <Wind size={20} /> <span>Grounding</span>
           </button>
+          <button className={view === 'profile' ? 'active' : ''} onClick={() => setView('profile')}>
+            <UserIcon size={20} /> <span>My Profile</span>
+          </button>
         </div>
         
         <div className="nav-user">
@@ -169,11 +183,11 @@ const MainApp: React.FC = () => {
           </button>
           <div className="user-info">
             {profilePic ? (
-              <img src={profilePic} alt="Me" className="nav-avatar" />
+              <img src={profilePic} alt="Avatar" className="nav-avatar" />
             ) : (
-              <UserIcon size={18} />
+              <div className="nav-avatar-placeholder"><UserIcon size={16} /></div>
             )}
-            <span>{userEmail?.split('@')[0]}</span>
+            <span className="user-name-nav">{userData?.full_name || userEmail?.split('@')[0]}</span>
           </div>
           <button onClick={logout} className="logout-btn">
             <LogOut size={18} /> <span>Logout</span>
@@ -188,24 +202,40 @@ const MainApp: React.FC = () => {
               {messages.length === 0 && (
                 <div className="empty-chat">
                   <Sparkles size={48} color="#3b82f6" />
-                  <h3>Your safe space is ready.</h3>
-                  <p>How are you feeling right now? I'm here to listen and support you.</p>
+                  <h3>Welcome, {userData?.full_name || 'Friend'}.</h3>
+                  <p>How are you feeling right now? Your safe space is open.</p>
                 </div>
               )}
               {messages.map((msg, idx) => (
                 <div key={idx} className={`message-bubble ${msg.role}`}>
-                  <div className="bubble-content">
-                    <p>{msg.content}</p>
-                    {msg.role === 'assistant' && msg.risk && (
-                      <div className="bubble-meta">
-                        <span className={`mini-badge risk-${msg.risk.toLowerCase()}`}>{msg.risk}</span>
-                        <span className="mini-badge emotion">{msg.emotion}</span>
+                  <div className="bubble-wrapper">
+                    {msg.role === 'assistant' ? (
+                      <div className="bubble-avatar ai"><BrainCircuit size={16} /></div>
+                    ) : (
+                      <div className="bubble-avatar user">
+                        {profilePic ? <img src={profilePic} alt="Me" /> : <UserIcon size={16} />}
                       </div>
                     )}
+                    <div className="bubble-content">
+                      <p>{msg.content}</p>
+                      {msg.role === 'assistant' && msg.risk && (
+                        <div className="bubble-meta">
+                          <span className={`mini-badge risk-${msg.risk.toLowerCase()}`}>{msg.risk}</span>
+                          <span className="mini-badge emotion">{msg.emotion}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
-              {loading && <div className="message-bubble assistant loading"><div className="typing-dots"><span>.</span><span>.</span><span>.</span></div></div>}
+              {loading && (
+                <div className="message-bubble assistant loading">
+                  <div className="bubble-wrapper">
+                    <div className="bubble-avatar ai"><BrainCircuit size={16} /></div>
+                    <div className="typing-dots"><span>.</span><span>.</span><span>.</span></div>
+                  </div>
+                </div>
+              )}
               <div ref={chatEndRef} />
             </div>
 
@@ -214,14 +244,9 @@ const MainApp: React.FC = () => {
                 <textarea 
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
-                  placeholder="Type or speak your thoughts..."
+                  placeholder="Tell me what's on your mind..."
                   rows={1}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessage(e);
-                    }
-                  }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(e); } }}
                 />
                 <div className="input-actions">
                   <button type="button" className={`icon-btn ${isListening ? 'listening' : ''}`} onClick={startListening}>
@@ -232,12 +257,12 @@ const MainApp: React.FC = () => {
                   </button>
                 </div>
               </div>
-              {error && <p className="chat-error">{error}</p>}
             </form>
           </div>
         )}
         {view === 'dashboard' && <Dashboard />}
         {view === 'grounding' && <BreathingExercise />}
+        {view === 'profile' && <Profile />}
       </main>
 
       {/* Mobile Bottom Nav */}
@@ -251,7 +276,9 @@ const MainApp: React.FC = () => {
           <span>Journey</span>
         </button>
         <button className={view === 'profile' ? 'active' : ''} onClick={() => setView('profile')}>
-          <UserIcon size={20} />
+          <div className="mobile-nav-avatar">
+            {profilePic ? <img src={profilePic} alt="P" /> : <UserIcon size={20} />}
+          </div>
           <span>Profile</span>
         </button>
         <button onClick={logout}>
