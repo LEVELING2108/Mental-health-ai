@@ -70,7 +70,6 @@ class MentalHealthPredictor:
             risk=final_risk,
             emotion=emotion_label,
             user_text=text,
-            keywords=[label],
             history=history
         )
         logger.info(f"Analysis Complete - Risk: {final_risk} (Detected: {label}), Emotion: {emotion_label}")
