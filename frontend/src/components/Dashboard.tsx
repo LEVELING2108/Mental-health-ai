@@ -175,8 +175,8 @@ export const Dashboard: React.FC = () => {
             <span className="stat-value">{barData.length > 0 ? barData.reduce((a, b) => a.value > b.value ? a : b).name : 'N/A'}</span>
           </div>
         </div>
-        <div className={`stat-card ${logs.length > 0 ? logs[0].risk_level.toLowerCase() : ''}`}>
-          <ShieldAlert className={`stat-icon ${logs.length > 0 ? logs[0].risk_level.toLowerCase() : 'red'}`} />
+        <div className={`stat-card ${logs.length > 0 ? logs[0].risk_level.toLowerCase() : 'blue'}`}>
+          <ShieldAlert className={`stat-icon ${logs.length > 0 ? logs[0].risk_level.toLowerCase() : 'blue'}`} />
           <div className="stat-content">
             <span className="stat-label">Recent Risk</span>
             <span className={`stat-value risk-${logs.length > 0 ? logs[0].risk_level.toLowerCase() : ''}`}>
