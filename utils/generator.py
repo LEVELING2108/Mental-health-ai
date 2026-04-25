@@ -1,8 +1,6 @@
 import random
 import re
-
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
-
 from core.logger import setup_logger
 from utils.rag import rag_engine
 
@@ -29,6 +27,11 @@ SUGGESTIONS = {
         "Put away all screens 60 minutes before bed to allow your mind to settle.",
         "Keep your room cool and dark to signal to your body that it's time for rest.",
         "If thoughts are racing, write them down on a 'worry list' to handle tomorrow."
+    ],
+    "positive": [
+        "That is wonderful to hear! Consider taking a moment to practice gratitude for this feeling.",
+        "Why not share this positive energy with someone else today? A small kind gesture can go a long way.",
+        "Remember to savor this moment—take a mental snapshot of what's going well right now."
     ]
 }
 
@@ -53,6 +56,10 @@ class ResponseGenerator:
 
     def get_tips(self, risk: str, emotion: str) -> str:
         """Dynamic tip selection."""
+        # JOY/LOVE/SURPRISE are treated as positive regardless of small risk fluctuations
+        if emotion.lower() in ["joy", "love", "surprise"]:
+            return random.choice(SUGGESTIONS["positive"])
+
         category = "stress"
         if "anxious" in emotion or "fear" in emotion:
             category = "anxiety"
@@ -68,51 +75,60 @@ class ResponseGenerator:
         if not self.model:
             return "I am here for you. Please consider reaching out to a professional for support."
 
-        # 1. Prepare Grounded Context
-        raw_context = rag_engine.query(user_text)
+        # 1. Determine Context Type (Force positive if emotion is Joy)
+        is_positive = emotion.lower() in ["joy", "love", "surprise"]
+        
+        # 2. Prepare Grounded Context
+        # Don't use RAG clinical guidance if the user is happy
+        raw_context = rag_engine.query(user_text) if not is_positive else ""
         clean_context = self.clean_clinical_text(raw_context)
         action_tip = self.get_tips(risk, emotion)
+        
+        # 3. SELECT PERSONA & TONE
+        if is_positive:
+            persona = "supportive, enthusiastic life coach"
+            instruction = f"Write a cheerful 2-sentence response celebrating that they feel {emotion}. Include this advice: {action_tip}"
+        else:
+            persona = "warm, professional mental health counselor"
+            instruction = f"Write a deeply empathetic 3-sentence response validating their {emotion}. Include this clinical advice: {action_tip} {clean_context}"
 
-        # 2. SIMPLIFIED ELITE PROMPT (Optimized for FLAN-T5)
-        # Few-Shot structure helps smaller models understand the 'Warmth' requirement
         prompt = (
-            f"Context: You are a warm, kind, and professional mental health counselor.\n"
+            f"Context: You are a {persona}.\n"
             f"User says: '{user_text}'\n"
-            f"Advice to include: {action_tip} {clean_context}\n\n"
-            f"Instruction: Write a deeply empathetic 3-sentence reply to the user. "
-            f"Use a warm tone. Validate their feelings of {emotion}. Tell them there is hope.\n\n"
-            f"Counselor Response:"
+            f"Instruction: {instruction} Do not repeat these instructions. Use a first-person perspective.\n\n"
+            f"Response:"
         )
 
         try:
             inputs = self.tokenizer(prompt, return_tensors="pt")
             outputs = self.model.generate(
-                **inputs,
-                max_length=256,
-                min_length=60,
-                do_sample=True,
-                temperature=0.8,
+                **inputs, 
+                max_length=256, 
+                min_length=30 if is_positive else 60,
+                do_sample=True, 
+                temperature=0.8, 
                 top_p=0.9,
                 repetition_penalty=1.5
             )
             response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-            # 3. PREMIUM HYBRID FALLBACK (Guarantees Quality)
-            response = response.replace("Counselor Response:", "").strip()
-
-            # If model echoes or fails to be empathetic, use our Elite Template
-            if len(response) < 50 or user_text.lower() in response.lower():
-                return (
-                    f"I want you to know that I truly hear you. It's completely valid to feel {emotion} right now, "
-                    f"and I'm sorry things are so heavy. For a bit of relief, I suggest you {action_tip.lower()} "
-                    f"Please remember that you don't have to carry this all at once—take it one small breath at a time. I'm here with you."
-                )
-
+            response = response.replace("Response:", "").strip()
+            
+            # 4. PREMIUM HYBRID FALLBACK (Guarantees Quality & Logic)
+            if len(response) < 20 or user_text.lower() in response.lower() or "instruction" in response.lower():
+                if is_positive:
+                    return f"I'm so incredibly happy to hear that you're feeling {emotion.lower()} today! {action_tip} Keep shining and enjoying this wonderful energy!"
+                else:
+                    return (
+                        f"I want you to know that I truly hear you. It's completely valid to feel {emotion.lower()} right now, "
+                        f"and I'm sorry things are so heavy. I suggest you {action_tip.lower()} "
+                        f"Please remember that you don't have to carry this all at once. I'm here with you."
+                    )
+                
             return response
 
         except Exception as e:
             logger.error(f"AI Error: {e}")
-            return f"I hear you, and I want to support you. It's valid to feel {emotion}. Please try to {action_tip.lower()}"
+            return f"I'm so glad to hear you're feeling {emotion.lower()}! {action_tip}"
 
 # Singleton instance
 ai_generator = ResponseGenerator()
