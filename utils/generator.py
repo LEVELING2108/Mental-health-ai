@@ -1,6 +1,8 @@
 import random
 import re
+
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+
 from core.logger import setup_logger
 from utils.rag import rag_engine
 
@@ -51,10 +53,13 @@ class ResponseGenerator:
         """Guaranteed high-quality clinical advice."""
         cat = "stress"
         emo = emotion.lower()
-        if any(w in emo for w in ["joy", "love", "surprise"]): cat = "positive"
-        elif any(w in emo for w in ["sad", "fear", "anger"]) or risk == "high": cat = "depression" if "sad" in emo else "anxiety"
-        elif "sleep" in emo: cat = "sleep"
-        
+        if any(w in emo for w in ["joy", "love", "surprise"]):
+            cat = "positive"
+        elif any(w in emo for w in ["sad", "fear", "anger"]) or risk == "high":
+            cat = "depression" if "sad" in emo else "anxiety"
+        elif "sleep" in emo:
+            cat = "sleep"
+
         return random.choice(CLINICAL_TIPS[cat])
 
     def generate(self, risk: str, emotion: str, user_text: str, keywords: list[str]) -> str:
@@ -66,7 +71,7 @@ class ResponseGenerator:
         raw_rag = rag_engine.query(user_text) if not is_positive else ""
         # Clean RAG data (remove markdown)
         clean_rag = re.sub(r'#.*?\n', '', raw_rag).replace('*', '').strip()[:200]
-        
+
         advice = self.get_clinical_advice(risk, emotion)
 
         # 2. THE CONSTRAINED PROMPT (Prevents instruction leaking)
@@ -78,14 +83,14 @@ class ResponseGenerator:
         try:
             inputs = self.tokenizer(prompt, return_tensors="pt")
             outputs = self.model.generate(
-                **inputs, 
-                max_length=150, 
-                do_sample=True, 
-                temperature=0.7, 
+                **inputs,
+                max_length=150,
+                do_sample=True,
+                temperature=0.7,
                 repetition_penalty=2.0
             )
             ai_empathy = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-            
+
             # 3. THE HYBRID CONSTRUCTOR (Guarantees Tier 1 Quality)
             # We combine the AI's natural empathy with our guaranteed clinical advice
             if is_positive:
