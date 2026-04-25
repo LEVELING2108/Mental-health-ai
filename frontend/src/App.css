@@ -120,8 +120,50 @@ body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg-app); c
 .content-area > h2 { padding: 2rem 2rem 0; margin: 0; }
 .dashboard-container, .grounding-card { padding: 2rem; max-width: 1200px; margin: 0 auto; overflow-y: auto; flex: 1; }
 
+/* Mobile Navigation */
+.mobile-bottom-nav {
+  display: none;
+  background: var(--bg-sidebar);
+  border-top: 1px solid var(--border);
+  padding: 0.5rem 1rem;
+  justify-content: space-around;
+  position: sticky;
+  bottom: 0;
+  z-index: 100;
+}
+
+.mobile-bottom-nav button {
+  background: transparent;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mobile-bottom-nav button.active {
+  color: var(--primary);
+}
+
 @media (max-width: 768px) {
   .side-nav { display: none; }
+  .mobile-bottom-nav { display: flex; }
   .auth-container { grid-template-columns: 1fr; width: 90%; }
   .brand-section { display: none; }
+  
+  .chat-window {
+    padding: 1rem;
+  }
+  
+  .message-bubble {
+    max-width: 90%;
+  }
+
+  .content-area {
+    height: calc(100vh - 60px); /* Adjust for bottom nav */
+  }
 }

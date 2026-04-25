@@ -224,6 +224,26 @@ const MainApp: React.FC = () => {
         {view === 'dashboard' && <Dashboard />}
         {view === 'grounding' && <BreathingExercise />}
       </main>
+
+      {/* Mobile Bottom Nav */}
+      <nav className="mobile-bottom-nav">
+        <button className={view === 'chat' ? 'active' : ''} onClick={() => setView('chat')}>
+          <MessageSquare size={20} />
+          <span>Support</span>
+        </button>
+        <button className={view === 'dashboard' ? 'active' : ''} onClick={() => setView('dashboard')}>
+          <LayoutDashboard size={20} />
+          <span>Journey</span>
+        </button>
+        <button className={view === 'grounding' ? 'active' : ''} onClick={() => setView('grounding')}>
+          <Wind size={20} />
+          <span>Calm</span>
+        </button>
+        <button onClick={logout}>
+          <LogOut size={20} />
+          <span>Exit</span>
+        </button>
+      </nav>
     </div>
   );
 };
