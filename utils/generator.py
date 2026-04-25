@@ -6,7 +6,7 @@ from utils.rag import rag_engine
 
 logger = setup_logger(__name__)
 
-# Advanced Suggestion Engine for actionable advice
+# Advanced Suggestion Engine
 SUGGESTIONS = {
     "anxiety": [
         "Try the '5-4-3-2-1' grounding technique: name 5 things you see, 4 you can touch, 3 you hear, 2 you can smell, and 1 you can taste.",
@@ -47,19 +47,15 @@ class ResponseGenerator:
             self.model = None
 
     def clean_clinical_text(self, text: str) -> str:
-        """Removes Markdown headers and clean up RAG results for the LLM."""
         if not text:
             return ""
-        text = re.sub(r'#.*?\n', '', text) # Remove headers
+        text = re.sub(r'#.*?\n', '', text)
         text = text.replace('*', '').replace('\n', ' ').strip()
-        return text[:300] # Limit length for prompt stability
+        return text[:200]
 
     def get_tips(self, risk: str, emotion: str) -> str:
-        """Dynamic tip selection."""
-        # JOY/LOVE/SURPRISE are treated as positive regardless of small risk fluctuations
         if emotion.lower() in ["joy", "love", "surprise"]:
             return random.choice(SUGGESTIONS["positive"])
-
         category = "stress"
         if "anxious" in emotion or "fear" in emotion:
             category = "anxiety"
@@ -67,68 +63,60 @@ class ResponseGenerator:
             category = "depression"
         elif "sleep" in emotion:
             category = "sleep"
-
-        tips = SUGGESTIONS.get(category, SUGGESTIONS["stress"])
-        return random.choice(tips)
+        return random.choice(SUGGESTIONS.get(category, SUGGESTIONS["stress"]))
 
     def generate(self, risk: str, emotion: str, user_text: str, keywords: list[str]) -> str:
         if not self.model:
             return "I am here for you. Please consider reaching out to a professional for support."
 
-        # 1. Determine Context Type (Force positive if emotion is Joy)
         is_positive = emotion.lower() in ["joy", "love", "surprise"]
-        
-        # 2. Prepare Grounded Context
-        # Don't use RAG clinical guidance if the user is happy
         raw_context = rag_engine.query(user_text) if not is_positive else ""
         clean_context = self.clean_clinical_text(raw_context)
         action_tip = self.get_tips(risk, emotion)
         
-        # 3. SELECT PERSONA & TONE
-        if is_positive:
-            persona = "supportive, enthusiastic life coach"
-            instruction = f"Write a cheerful 2-sentence response celebrating that they feel {emotion}. Include this advice: {action_tip}"
-        else:
-            persona = "warm, professional mental health counselor"
-            instruction = f"Write a deeply empathetic 3-sentence response validating their {emotion}. Include this clinical advice: {action_tip} {clean_context}"
-
+        # FEW-SHOT PROMPT: Shows the model exactly how to behave
         prompt = (
-            f"Context: You are a {persona}.\n"
-            f"User says: '{user_text}'\n"
-            f"Instruction: {instruction} Do not repeat these instructions. Use a first-person perspective.\n\n"
-            f"Response:"
+            "User: I am feeling so sad today.\n"
+            "Assistant: I am so sorry you are feeling this way. It is completely valid to feel sad right now. I suggest you try a small task you enjoy, and remember there is hope.\n"
+            "User: I am having a great day!\n"
+            "Assistant: That is wonderful to hear! I am so happy you are feeling good. Remember to savor this positive energy today!\n"
+            f"User: {user_text}\n"
+            f"Assistant:"
         )
 
         try:
             inputs = self.tokenizer(prompt, return_tensors="pt")
             outputs = self.model.generate(
                 **inputs, 
-                max_length=256, 
-                min_length=30 if is_positive else 60,
+                max_length=100, # Shorter is better for this model
                 do_sample=True, 
-                temperature=0.8, 
+                temperature=0.7, 
                 top_p=0.9,
                 repetition_penalty=1.5
             )
             response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-            response = response.replace("Response:", "").strip()
             
-            # 4. PREMIUM HYBRID FALLBACK (Guarantees Quality & Logic)
-            if len(response) < 20 or user_text.lower() in response.lower() or "instruction" in response.lower():
+            # THE "IDIOT-PROOF" FILTER
+            # If the model leaks ANY instruction words, we block it and use the high-quality template
+            instruction_leak = any(word in response.lower() for word in [
+                "sentence", "instruction", "positive response", "negative response", 
+                "validate", "persona", "clinical", "user says"
+            ])
+
+            if instruction_leak or len(response) < 15 or user_text.lower() in response.lower():
                 if is_positive:
-                    return f"I'm so incredibly happy to hear that you're feeling {emotion.lower()} today! {action_tip} Keep shining and enjoying this wonderful energy!"
+                    return f"It is so wonderful that you're feeling {emotion.lower()} today! {action_tip} Keep up this great energy!"
                 else:
                     return (
-                        f"I want you to know that I truly hear you. It's completely valid to feel {emotion.lower()} right now, "
-                        f"and I'm sorry things are so heavy. I suggest you {action_tip.lower()} "
-                        f"Please remember that you don't have to carry this all at once. I'm here with you."
+                        f"I want you to know that I truly hear you. It's completely valid to feel {emotion.lower()} right now. "
+                        f"I suggest you {action_tip.lower()} Please take it one small breath at a time. I'm here with you."
                     )
                 
             return response
 
         except Exception as e:
             logger.error(f"AI Error: {e}")
-            return f"I'm so glad to hear you're feeling {emotion.lower()}! {action_tip}"
+            return f"I hear you, and I want to support you. It's valid to feel {emotion}. Please try to {action_tip.lower()}"
 
 # Singleton instance
 ai_generator = ResponseGenerator()
