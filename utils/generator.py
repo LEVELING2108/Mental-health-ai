@@ -1,6 +1,8 @@
 import random
 import re
+
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+
 from core.logger import setup_logger
 from utils.rag import rag_engine
 
@@ -43,7 +45,8 @@ class ResponseGenerator:
 
     def clean_clinical_text(self, text: str) -> str:
         """Removes Markdown headers and clean up RAG results for the LLM."""
-        if not text: return ""
+        if not text:
+            return ""
         text = re.sub(r'#.*?\n', '', text) # Remove headers
         text = text.replace('*', '').replace('\n', ' ').strip()
         return text[:300] # Limit length for prompt stability
@@ -51,10 +54,13 @@ class ResponseGenerator:
     def get_tips(self, risk: str, emotion: str) -> str:
         """Dynamic tip selection."""
         category = "stress"
-        if "anxious" in emotion or "fear" in emotion: category = "anxiety"
-        elif "sad" in emotion or "depression" in risk: category = "depression"
-        elif "sleep" in emotion: category = "sleep"
-        
+        if "anxious" in emotion or "fear" in emotion:
+            category = "anxiety"
+        elif "sad" in emotion or "depression" in risk:
+            category = "depression"
+        elif "sleep" in emotion:
+            category = "sleep"
+
         tips = SUGGESTIONS.get(category, SUGGESTIONS["stress"])
         return random.choice(tips)
 
@@ -66,7 +72,7 @@ class ResponseGenerator:
         raw_context = rag_engine.query(user_text)
         clean_context = self.clean_clinical_text(raw_context)
         action_tip = self.get_tips(risk, emotion)
-        
+
         # 2. SIMPLIFIED ELITE PROMPT (Optimized for FLAN-T5)
         # Few-Shot structure helps smaller models understand the 'Warmth' requirement
         prompt = (
@@ -81,19 +87,19 @@ class ResponseGenerator:
         try:
             inputs = self.tokenizer(prompt, return_tensors="pt")
             outputs = self.model.generate(
-                **inputs, 
-                max_length=256, 
+                **inputs,
+                max_length=256,
                 min_length=60,
-                do_sample=True, 
-                temperature=0.8, 
+                do_sample=True,
+                temperature=0.8,
                 top_p=0.9,
                 repetition_penalty=1.5
             )
             response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-            
+
             # 3. PREMIUM HYBRID FALLBACK (Guarantees Quality)
             response = response.replace("Counselor Response:", "").strip()
-            
+
             # If model echoes or fails to be empathetic, use our Elite Template
             if len(response) < 50 or user_text.lower() in response.lower():
                 return (
@@ -101,7 +107,7 @@ class ResponseGenerator:
                     f"and I'm sorry things are so heavy. For a bit of relief, I suggest you {action_tip.lower()} "
                     f"Please remember that you don't have to carry this all at once—take it one small breath at a time. I'm here with you."
                 )
-                
+
             return response
 
         except Exception as e:
