@@ -1,103 +1,80 @@
+import random
+import re
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
-
 from core.logger import setup_logger
-from utils.rag import rag_engine  # New: RAG Engine
+from utils.rag import rag_engine
 
 logger = setup_logger(__name__)
-
-
-# Keyword-specific Knowledge Base for precise intervention
-KEYWORD_GUIDANCE = {
-    "exam": "Academic stress is very common. Remember to take 5-minute breaks every hour and stay hydrated.",
-    "sleep": "Sleep hygiene is crucial. Try to avoid screens 30 minutes before bed and keep a consistent wake-up time.",
-    "lonely": "Feeling lonely is a heavy burden. Reaching out to even one person, or joining a community group, can make a difference.",
-    "work": "Workplace burnout is real. Ensure you are setting clear boundaries between your professional and personal life.",
-    "hopeless": "When things feel hopeless, it's the 'depression voice' talking, not reality. Please reach out to a professional who can help you navigate this fog.",
-    "anxiety": "When anxiety hits, try the 5-4-3-2-1 grounding technique: acknowledge 5 things you see, 4 you can touch, 3 you hear, 2 you can smell, and 1 you can taste.",
-    "anxious": "When anxiety hits, try the 5-4-3-2-1 grounding technique: acknowledge 5 things you see, 4 you can touch, 3 you hear, 2 you can smell, and 1 you can taste.",
-    "grief": "Grief isn't a linear process; it's okay to have 'waves' of sadness. Be gentle with yourself and allow the feelings to pass without judgment.",
-    "loss": "Grief isn't a linear process; it's okay to have 'waves' of sadness. Be gentle with yourself and allow the feelings to pass without judgment.",
-    "breakup": "Healing after a relationship takes time. Focus on 'self-fullness'—reconnecting with the hobbies and friends that make you who you are.",
-    "relationship": "Relationships can be complex. Communication and setting healthy boundaries are the foundations of emotional safety.",
-    "family": "Family dynamics can be one of our biggest stressors. Remember that you are only responsible for your own reactions, not theirs.",
-    "social": "Social battery drainage is real. It's perfectly okay to decline invitations to protect your peace of mind.",
-    "health": "Physical and mental health are deeply linked. Small movements, like a 10-minute walk, can sometimes shift your internal state.",
-    "future": "If the future feels overwhelming, try to bring your focus back to the next 10 minutes. Small, present-moment steps are enough.",
-    "worth": "Your value isn't tied to your productivity or others' opinions. You are inherently worthy of care and respect exactly as you are.",
-    "trauma": "Healing from the past is a brave journey. If memories feel intrusive, remind yourself: 'I am safe now, and that was then.'",
-    "motivation": "When motivation is low, 'action creates momentum.' Try doing just one tiny task for two minutes—often, that's enough to start the flow."
-}
 
 # Advanced Suggestion Engine for actionable advice
 SUGGESTIONS = {
     "anxiety": [
-        "Try the '5-4-3-2-1' grounding technique.",
-        "Practice 4-7-8 breathing (inhale 4s, hold 7s, exhale 8s).",
-        "Consider reducing caffeine intake for the next 24 hours."
+        "Try the '5-4-3-2-1' grounding technique: name 5 things you see, 4 you can touch, 3 you hear, 2 you can smell, and 1 you can taste.",
+        "Practice 4-7-8 breathing (inhale 4s, hold 7s, exhale 8s) to calm your nervous system.",
+        "Consider reducing caffeine and focusing on your immediate surroundings."
     ],
     "depression": [
-        "Try the 'Behavioral Activation' method: do one small task you used to enjoy, even if you don't feel like it.",
-        "Step outside for 10 minutes of natural sunlight.",
-        "Reach out to one trusted friend just to say 'hello'."
+        "Try a small 'Behavioral Activation' task: do one tiny thing you used to enjoy, like making a cup of tea or listening to a favorite song.",
+        "Step outside for just 5 minutes of fresh air and natural light.",
+        "Be gentle with yourself; your value isn't tied to your productivity today."
     ],
     "stress": [
-        "Use the 'Eisenhower Matrix' to prioritize your tasks and delegate what isn't urgent.",
-        "Try a 5-minute progressive muscle relaxation (tense and release each muscle group).",
-        "Set a 'hard stop' time for work today to protect your evening."
+        "Try the Eisenhower Matrix: focus only on what is both urgent and important right now.",
+        "Do a 5-minute 'Brain Dump'—write everything down on paper to get it out of your head.",
+        "Set a 'hard stop' time for your responsibilities today to protect your rest."
     ],
     "sleep": [
-        "Avoid blue light (phones/screens) at least 60 minutes before bed.",
-        "Try a 'Brain Dump': write down everything worrying you on paper to clear your mind.",
-        "Keep your bedroom temperature slightly cool (around 18°C/65°F)."
+        "Put away all screens 60 minutes before bed to allow your mind to settle.",
+        "Keep your room cool and dark to signal to your body that it's time for rest.",
+        "If thoughts are racing, write them down on a 'worry list' to handle tomorrow."
     ]
 }
 
 class ResponseGenerator:
     def __init__(self):
-        logger.info("Initializing Generative LLM (google/flan-t5-base) manually...")
+        logger.info("Initializing Elite Generative AI (FLAN-T5-Base)...")
         try:
             self.tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-base")
             self.model = AutoModelForSeq2SeqLM.from_pretrained("google/flan-t5-base")
-            logger.info("Generative LLM loaded successfully.")
+            logger.info("Generative AI loaded successfully.")
         except Exception as e:
-            logger.error(f"Failed to load Generative LLM: {e}")
+            logger.error(f"Failed to load AI: {e}")
             self.model = None
 
-    def get_actionable_suggestions(self, risk: str, keywords: list[str]) -> str:
-        """Fetch concrete suggestions based on detected risk and keywords."""
-        relevant_tips = []
-        for kw in keywords:
-            if kw.lower() in SUGGESTIONS:
-                relevant_tips.extend(SUGGESTIONS[kw.lower()])
+    def clean_clinical_text(self, text: str) -> str:
+        """Removes Markdown headers and clean up RAG results for the LLM."""
+        if not text: return ""
+        text = re.sub(r'#.*?\n', '', text) # Remove headers
+        text = text.replace('*', '').replace('\n', ' ').strip()
+        return text[:300] # Limit length for prompt stability
 
-        if not relevant_tips:
-            if risk == "high":
-                relevant_tips = SUGGESTIONS["depression"]
-            else:
-                relevant_tips = SUGGESTIONS["stress"]
-
-        import random
-        return " ".join(random.sample(list(set(relevant_tips)), min(2, len(relevant_tips))))
+    def get_tips(self, risk: str, emotion: str) -> str:
+        """Dynamic tip selection."""
+        category = "stress"
+        if "anxious" in emotion or "fear" in emotion: category = "anxiety"
+        elif "sad" in emotion or "depression" in risk: category = "depression"
+        elif "sleep" in emotion: category = "sleep"
+        
+        tips = SUGGESTIONS.get(category, SUGGESTIONS["stress"])
+        return random.choice(tips)
 
     def generate(self, risk: str, emotion: str, user_text: str, keywords: list[str]) -> str:
         if not self.model:
             return "I am here for you. Please consider reaching out to a professional for support."
 
-        # 1. RAG & Tips
-        clinical_context = rag_engine.query(user_text)
-        action_tips = self.get_actionable_suggestions(risk, keywords)
-
-        # 2. THE ULTIMATE PERSONA PROMPT
-        # We use a very strong instruction format to stop the model from summarizing
+        # 1. Prepare Grounded Context
+        raw_context = rag_engine.query(user_text)
+        clean_context = self.clean_clinical_text(raw_context)
+        action_tip = self.get_tips(risk, emotion)
+        
+        # 2. SIMPLIFIED ELITE PROMPT (Optimized for FLAN-T5)
+        # Few-Shot structure helps smaller models understand the 'Warmth' requirement
         prompt = (
-            f"Persona: You are a warm, highly empathetic clinical counselor.\n"
-            f"Input: The user says: '{user_text}'\n"
-            f"User state: Feeling {emotion}, Risk level: {risk}\n"
-            f"Clinical Guidance to use: {clinical_context}\n"
-            f"Practical Tips to include: {action_tips}\n\n"
-            f"Instruction: Write a 3-sentence response. First, tell the user you truly hear them and validate their feelings. "
-            f"Second, provide the specific Clinical Guidance and Practical Tips listed above. "
-            f"Third, give them a warm message of hope. Use 'I' and 'You' to make it personal.\n\n"
+            f"Context: You are a warm, kind, and professional mental health counselor.\n"
+            f"User says: '{user_text}'\n"
+            f"Advice to include: {action_tip} {clean_context}\n\n"
+            f"Instruction: Write a deeply empathetic 3-sentence reply to the user. "
+            f"Use a warm tone. Validate their feelings of {emotion}. Tell them there is hope.\n\n"
             f"Counselor Response:"
         )
 
@@ -106,32 +83,30 @@ class ResponseGenerator:
             outputs = self.model.generate(
                 **inputs, 
                 max_length=256, 
-                min_length=50, # Force a longer, more thoughtful response
+                min_length=60,
                 do_sample=True, 
-                temperature=0.85, # Slightly higher for more "human" flow
-                top_p=0.92,
+                temperature=0.8, 
+                top_p=0.9,
                 repetition_penalty=1.5
             )
             response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-            # Cleaning
-            response = response.replace("Counselor Response:", "").replace("Response:", "").strip()
-
-            # 3. SMART FALLBACK ENGINE (Tier 1 Reliability)
-            # If the model still gives a short or instruction-echoing reply, we use our Hybrid Generator
-            lower_res = response.lower()
-            if len(response) < 60 or "instruction:" in lower_res or "counselor" in lower_res:
+            
+            # 3. PREMIUM HYBRID FALLBACK (Guarantees Quality)
+            response = response.replace("Counselor Response:", "").strip()
+            
+            # If model echoes or fails to be empathetic, use our Elite Template
+            if len(response) < 50 or user_text.lower() in response.lower():
                 return (
-                    f"I want you to know that I truly hear you, and it's completely valid to feel {emotion} when dealing with this. "
-                    f"Based on what you've shared, here is some grounded advice: {clinical_context if clinical_context else ''} {action_tips} "
-                    f"You don't have to carry all of this today. Please take it one small breath at a time."
+                    f"I want you to know that I truly hear you. It's completely valid to feel {emotion} right now, "
+                    f"and I'm sorry things are so heavy. For a bit of relief, I suggest you {action_tip.lower()} "
+                    f"Please remember that you don't have to carry this all at once—take it one small breath at a time. I'm here with you."
                 )
-
+                
             return response
 
         except Exception as e:
-            logger.error(f"Generation error: {e}")
-            return "I'm sorry, I'm having trouble finding the words right now, but I want you to know I'm listening and I care."
+            logger.error(f"AI Error: {e}")
+            return f"I hear you, and I want to support you. It's valid to feel {emotion}. Please try to {action_tip.lower()}"
 
 # Singleton instance
 ai_generator = ResponseGenerator()
