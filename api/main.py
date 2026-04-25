@@ -11,17 +11,13 @@ app = FastAPI(
 )
 
 # Enterprise standard: Add CORS middleware
+# Note: Using ["*"] for local network testing to ensure mobile connectivity
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:3000",
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False, # Must be False if using ["*"]
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"]
 )
 
 @app.get("/")
