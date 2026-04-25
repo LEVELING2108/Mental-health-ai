@@ -168,7 +168,11 @@ const MainApp: React.FC = () => {
             {theme === 'light' ? <><Moon size={18} /> Dark Mode</> : <><Sun size={18} /> Light Mode</>}
           </button>
           <div className="user-info">
-            <UserIcon size={18} />
+            {profilePic ? (
+              <img src={profilePic} alt="Me" className="nav-avatar" />
+            ) : (
+              <UserIcon size={18} />
+            )}
             <span>{userEmail?.split('@')[0]}</span>
           </div>
           <button onClick={logout} className="logout-btn">
@@ -246,9 +250,9 @@ const MainApp: React.FC = () => {
           <LayoutDashboard size={20} />
           <span>Journey</span>
         </button>
-        <button className={view === 'grounding' ? 'active' : ''} onClick={() => setView('grounding')}>
-          <Wind size={20} />
-          <span>Calm</span>
+        <button className={view === 'profile' ? 'active' : ''} onClick={() => setView('profile')}>
+          <UserIcon size={20} />
+          <span>Profile</span>
         </button>
         <button onClick={logout}>
           <LogOut size={20} />

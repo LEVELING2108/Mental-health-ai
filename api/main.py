@@ -1,7 +1,9 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
-from api.routes import auth, moods, predict
+from api.routes import auth, moods, predict, users
 from core.config import settings
 
 app = FastAPI(
@@ -9,6 +11,11 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     description="Mental Health AI Enterprise API for risk detection and support."
 )
+
+# Mount static files for profile pictures
+if not os.path.exists("uploads"):
+    os.makedirs("uploads")
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # Enterprise standard: Add CORS middleware
 # Note: Using ["*"] for local network testing to ensure mobile connectivity
@@ -31,6 +38,7 @@ def read_root():
 
 app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
 app.include_router(moods.router, prefix=f"{settings.API_V1_STR}/moods", tags=["moods"])
+app.include_router(users.router, prefix=f"{settings.API_V1_STR}/users", tags=["users"])
 app.include_router(predict.router, prefix=f"{settings.API_V1_STR}/predict", tags=["predict"])
 
 if __name__ == "__main__":

@@ -16,6 +16,13 @@ class User(Base):
     id = Column(String, primary_key=True, default=generate_uuid, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
+    
+    # Profile Fields
+    full_name = Column(String, nullable=True)
+    bio = Column(Text, nullable=True)
+    location = Column(String, nullable=True)
+    profile_image = Column(String, nullable=True) # Path to the image file
+    
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Relationship to mood logs
