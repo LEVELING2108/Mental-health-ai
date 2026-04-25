@@ -1,6 +1,8 @@
 import os
+
 import chromadb
 from chromadb.utils import embedding_functions
+
 from core.logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -8,21 +10,21 @@ logger = setup_logger(__name__)
 class RAGEngine:
     def __init__(self, persist_directory="data/vector_db"):
         self.persist_directory = persist_directory
-        
+
         # 1. Setup ChromaDB client
         self.client = chromadb.PersistentClient(path=persist_directory)
-        
+
         # 2. Use a high-quality local embedding model (no API key needed)
         self.embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
             model_name="all-MiniLM-L6-v2"
         )
-        
+
         # 3. Get or create the collection
         self.collection = self.client.get_or_create_collection(
             name="mental_health_knowledge",
             embedding_function=self.embedding_fn
         )
-        
+
         # 4. Automatically index if empty
         if self.collection.count() == 0:
             self.index_knowledge_base()
@@ -35,15 +37,15 @@ class RAGEngine:
             return
 
         logger.info("Indexing knowledge base into Vector DB...")
-        
+
         documents = []
         ids = []
         metadatas = []
-        
+
         for filename in os.listdir(kb_path):
             if filename.endswith(".md"):
                 file_path = os.path.join(kb_path, filename)
-                with open(file_path, "r", encoding="utf-8") as f:
+                with open(file_path, encoding="utf-8") as f:
                     content = f.read()
                     # We can split by section or just index the whole file for now
                     documents.append(content)
@@ -65,7 +67,7 @@ class RAGEngine:
                 query_texts=[text],
                 n_results=n_results
             )
-            
+
             if results["documents"] and results["documents"][0]:
                 return results["documents"][0][0]
             return ""

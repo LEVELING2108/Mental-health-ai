@@ -1,4 +1,5 @@
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+
 from core.logger import setup_logger
 from utils.rag import rag_engine  # New: RAG Engine
 
@@ -84,7 +85,7 @@ class ResponseGenerator:
 
         # 1. RAG: Search the Vector DB
         clinical_context = rag_engine.query(user_text)
-        
+
         # 2. Expert tips
         action_tips = self.get_actionable_suggestions(risk, keywords)
 
@@ -98,19 +99,19 @@ class ResponseGenerator:
         try:
             inputs = self.tokenizer(prompt, return_tensors="pt")
             outputs = self.model.generate(
-                **inputs, 
-                max_length=200, 
-                do_sample=True, 
+                **inputs,
+                max_length=200,
+                do_sample=True,
                 temperature=0.8,
                 top_p=0.9,
                 repetition_penalty=1.5
             )
             response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-            
+
             # If the model echoes the user text exactly, provide a high-quality fallback
             if user_text.lower().strip() in response.lower():
                 return f"I'm truly sorry you're going through this. It sounds like you're dealing with a lot of weight. {action_tips} Please remember you don't have to carry this alone."
-                
+
             return response
         except Exception as e:
             logger.error(f"Generation error: {e}")
