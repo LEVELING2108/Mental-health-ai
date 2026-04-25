@@ -221,7 +221,7 @@ export const Dashboard: React.FC = () => {
         <div className="chart-wrapper">
           <h3>Emotional Distribution</h3>
           <p className="chart-sub">Frequency of detected emotions</p>
-          <div style={{ width: '100%', height: '250px' }}>
+          <div style={{ width: '100%', height: 300, minHeight: 300 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={barData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
