@@ -85,33 +85,40 @@ class ResponseGenerator:
 
         # 1. RAG: Search the Vector DB
         clinical_context = rag_engine.query(user_text)
-
+        
         # 2. Expert tips
         action_tips = self.get_actionable_suggestions(risk, keywords)
 
-        # 3. STREAMLINED PROMPT (FLAN-T5 optimized)
+        # 3. TASK-ORIENTED PROMPT (Best for FLAN-T5 instruction following)
         prompt = (
-            f"Question: How should a mental health assistant respond to: '{user_text}'?\n"
-            f"Context: User is {emotion}. Verified Advice: {clinical_context}. Tips: {action_tips}.\n"
-            f"Answer: Provide a warm, empathetic validation and include the advice above."
+            f"Task: You are an empathetic mental health assistant. Respond to the user's message using the clinical guidance and tips provided.\n\n"
+            f"User message: {user_text}\n"
+            f"Context: The user is feeling {emotion}.\n"
+            f"Clinical guidance: {clinical_context}\n"
+            f"Actionable tips: {action_tips}\n\n"
+            f"Supportive Response:"
         )
 
         try:
             inputs = self.tokenizer(prompt, return_tensors="pt")
             outputs = self.model.generate(
-                **inputs,
-                max_length=200,
-                do_sample=True,
-                temperature=0.8,
+                **inputs, 
+                max_length=250, 
+                do_sample=True, 
+                temperature=0.7,
                 top_p=0.9,
                 repetition_penalty=1.5
             )
             response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-            # If the model echoes the user text exactly, provide a high-quality fallback
-            if user_text.lower().strip() in response.lower():
-                return f"I'm truly sorry you're going through this. It sounds like you're dealing with a lot of weight. {action_tips} Please remember you don't have to carry this alone."
-
+            
+            # Robust cleaning and fallback
+            response = response.replace("Supportive Response:", "").replace("Response:", "").strip()
+            
+            # Check if model just output instructions or repeated user text
+            lower_res = response.lower()
+            if len(response) < 20 or "include the tips" in lower_res or "respond to" in lower_res or user_text.lower().strip() in lower_res:
+                return f"I'm truly sorry you're going through this. It sounds like you're dealing with {emotion}. {action_tips} Please remember you don't have to carry this alone."
+                
             return response
         except Exception as e:
             logger.error(f"Generation error: {e}")
