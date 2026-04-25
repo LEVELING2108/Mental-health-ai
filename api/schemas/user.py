@@ -10,6 +10,7 @@ class UserUpdate(BaseModel):
     bio: str | None = None
     location: str | None = None
     phone_number: str | None = None
+    gender: str | None = None
 
 class UserOut(BaseModel):
     id: str
@@ -18,6 +19,7 @@ class UserOut(BaseModel):
     bio: str | None = None
     location: str | None = None
     phone_number: str | None = None
+    gender: str | None = None
     profile_image: str | None = None
 
     model_config = ConfigDict(from_attributes=True)

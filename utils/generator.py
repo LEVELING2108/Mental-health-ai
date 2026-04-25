@@ -70,7 +70,7 @@ class ResponseGenerator:
             cat = "sleep"
         return random.choice(CLINICAL_TIPS[cat])
 
-    def generate(self, risk: str, emotion: str, user_text: str, history: list[dict] = None) -> str:
+    def generate(self, risk: str, emotion: str, user_text: str, history: list[dict] = None, gender: str = None) -> str:
         if not self.model:
             return "I'm right here with you. Please consider reaching out to a professional for support."
 
@@ -86,15 +86,17 @@ class ResponseGenerator:
             recent = history[-3:]
             history_str = "\n".join([f"{'User' if h['role'] == 'user' else 'Counselor'}: {h['content']}" for h in recent])
 
-        # 3. ELITE COUNSELOR PROMPT (Infused with Humour & Consolation)
+        # 3. ELITE COUNSELOR PROMPT (Infused with Gender Awareness)
+        gender_context = f"The user is {gender}." if gender else "The user's gender is unknown."
         prompt = (
             f"Role: You are a warm, wise, and slightly witty clinical counselor.\n"
+            f"User Identity: {gender_context}\n"
             f"Goal: Console the user and offer a gentle perspective.\n"
             f"History:\n{history_str}\n"
             f"User: {user_text}\n"
             f"Emotion: {emotion}, Risk: {risk}.\n\n"
-            f"Task: Respond in 2-3 kind sentences. Validate them first. "
-            f"If appropriate, use a tiny bit of gentle, self-deprecating humour or a relatable metaphor. "
+            f"Task: Respond in 2-3 kind sentences. Validate them first using appropriate gender terms if needed. "
+            f"If appropriate, use a tiny bit of gentle humour. "
             f"Always end with a consoling thought. Do not be robotic.\n\n"
             f"Counselor:"
         )

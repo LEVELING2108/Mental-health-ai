@@ -38,9 +38,10 @@ def predict_mental_health(
                 history_context.append({"role": "user", "content": log.user_text})
                 history_context.append({"role": "assistant", "content": log.ai_response})
 
-        # 2. Perform AI Analysis with History
+        # 2. Perform AI Analysis with History and Gender
         logger.info(f"Starting AI prediction (History depth: {len(history_context)})...")
-        result = predictor.predict(request.text, history=history_context)
+        gender = current_user.gender if current_user else None
+        result = predictor.predict(request.text, history=history_context, gender=gender)
         logger.info("AI prediction completed successfully.")
 
         # 2. Prepare responses

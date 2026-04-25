@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { User, MapPin, FileText, Camera, Save, CheckCircle, Mail, Phone } from 'lucide-react';
+import { User, MapPin, FileText, Camera, Save, CheckCircle, Mail, Phone, Users } from 'lucide-react';
 
 export const Profile: React.FC = () => {
   const { userEmail } = useAuth();
@@ -13,6 +13,7 @@ export const Profile: React.FC = () => {
   const [fullName, setFullName] = useState('');
   const [location, setLocation] = useState('');
   const [phone, setPhone] = useState('');
+  const [gender, setGender] = useState('');
   const [bio, setBio] = useState('');
   const [preview, setPreview] = useState<string | null>(null);
 
@@ -26,6 +27,7 @@ export const Profile: React.FC = () => {
       setFullName(res.data.full_name || '');
       setLocation(res.data.location || '');
       setPhone(res.data.phone_number || '');
+      setGender(res.data.gender || '');
       setBio(res.data.bio || '');
       if (res.data.profile_image) {
         const baseUrl = import.meta.env.VITE_API_BASE_URL.replace('/api/v1', '');
@@ -66,6 +68,7 @@ export const Profile: React.FC = () => {
         full_name: fullName,
         location: location,
         phone_number: phone,
+        gender: gender,
         bio: bio
       });
       setSuccess(true);
@@ -128,18 +131,23 @@ export const Profile: React.FC = () => {
               </div>
             </div>
 
-            {/* Email (Read Only) */}
+            {/* Gender Selection */}
             <div className="input-field">
-              <label>Email Address</label>
-              <div className="input-group disabled">
-                <Mail size={18} className="field-icon" />
-                <input 
-                  type="email" 
-                  value={userEmail || ''} 
-                  readOnly 
-                />
+              <label>Gender</label>
+              <div className="input-group">
+                <Users size={18} className="field-icon" />
+                <select 
+                  value={gender} 
+                  onChange={(e) => setGender(e.target.value)}
+                  className="select-field"
+                >
+                  <option value="">Select Gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                  <option value="prefer not to say">Prefer not to say</option>
+                </select>
               </div>
-              <span className="field-hint">Email cannot be changed</span>
             </div>
 
             {/* Phone Number */}
@@ -152,6 +160,19 @@ export const Profile: React.FC = () => {
                   value={phone} 
                   onChange={(e) => setPhone(e.target.value)} 
                   placeholder="e.g. +91 98765 43210" 
+                />
+              </div>
+            </div>
+
+            {/* Email (Read Only) */}
+            <div className="input-field full-width">
+              <label>Email Address (Account ID)</label>
+              <div className="input-group disabled">
+                <Mail size={18} className="field-icon" />
+                <input 
+                  type="email" 
+                  value={userEmail || ''} 
+                  readOnly 
                 />
               </div>
             </div>
