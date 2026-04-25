@@ -81,45 +81,54 @@ class ResponseGenerator:
 
     def generate(self, risk: str, emotion: str, user_text: str, keywords: list[str]) -> str:
         if not self.model:
-            return "I am here to support you. Please consider speaking with a professional."
+            return "I am here for you. Please consider reaching out to a professional for support."
 
-        # 1. RAG: Search the Vector DB
+        # 1. RAG & Tips
         clinical_context = rag_engine.query(user_text)
-        
-        # 2. Expert tips
         action_tips = self.get_actionable_suggestions(risk, keywords)
 
-        # 3. TASK-ORIENTED PROMPT (Best for FLAN-T5 instruction following)
+        # 2. THE ULTIMATE PERSONA PROMPT
+        # We use a very strong instruction format to stop the model from summarizing
         prompt = (
-            f"Task: You are an empathetic mental health assistant. Respond to the user's message using the clinical guidance and tips provided.\n\n"
-            f"User message: {user_text}\n"
-            f"Context: The user is feeling {emotion}.\n"
-            f"Clinical guidance: {clinical_context}\n"
-            f"Actionable tips: {action_tips}\n\n"
-            f"Supportive Response:"
+            f"Persona: You are a warm, highly empathetic clinical counselor.\n"
+            f"Input: The user says: '{user_text}'\n"
+            f"User state: Feeling {emotion}, Risk level: {risk}\n"
+            f"Clinical Guidance to use: {clinical_context}\n"
+            f"Practical Tips to include: {action_tips}\n\n"
+            f"Instruction: Write a 3-sentence response. First, tell the user you truly hear them and validate their feelings. "
+            f"Second, provide the specific Clinical Guidance and Practical Tips listed above. "
+            f"Third, give them a warm message of hope. Use 'I' and 'You' to make it personal.\n\n"
+            f"Counselor Response:"
         )
 
         try:
             inputs = self.tokenizer(prompt, return_tensors="pt")
             outputs = self.model.generate(
                 **inputs, 
-                max_length=250, 
+                max_length=256, 
+                min_length=50, # Force a longer, more thoughtful response
                 do_sample=True, 
-                temperature=0.7,
-                top_p=0.9,
+                temperature=0.85, # Slightly higher for more "human" flow
+                top_p=0.92,
                 repetition_penalty=1.5
             )
             response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
-            
-            # Robust cleaning and fallback
-            response = response.replace("Supportive Response:", "").replace("Response:", "").strip()
-            
-            # Check if model just output instructions or repeated user text
+
+            # Cleaning
+            response = response.replace("Counselor Response:", "").replace("Response:", "").strip()
+
+            # 3. SMART FALLBACK ENGINE (Tier 1 Reliability)
+            # If the model still gives a short or instruction-echoing reply, we use our Hybrid Generator
             lower_res = response.lower()
-            if len(response) < 20 or "include the tips" in lower_res or "respond to" in lower_res or user_text.lower().strip() in lower_res:
-                return f"I'm truly sorry you're going through this. It sounds like you're dealing with {emotion}. {action_tips} Please remember you don't have to carry this alone."
-                
+            if len(response) < 60 or "instruction:" in lower_res or "counselor" in lower_res:
+                return (
+                    f"I want you to know that I truly hear you, and it's completely valid to feel {emotion} when dealing with this. "
+                    f"Based on what you've shared, here is some grounded advice: {clinical_context if clinical_context else ''} {action_tips} "
+                    f"You don't have to carry all of this today. Please take it one small breath at a time."
+                )
+
             return response
+
         except Exception as e:
             logger.error(f"Generation error: {e}")
             return "I'm sorry, I'm having trouble finding the words right now, but I want you to know I'm listening and I care."
