@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Wind, Play, Square, RefreshCcw } from 'lucide-react';
 
 export const BreathingExercise: React.FC = () => {
-  const [isActive, setIsListening] = useState(false);
+  const [isActive, setIsActive] = useState(false);
   const [phase, setPhase] = useState<'Inhale' | 'Hold' | 'Exhale' | 'Rest'>('Inhale');
   const [seconds, setSeconds] = useState(4);
 
@@ -29,7 +29,7 @@ export const BreathingExercise: React.FC = () => {
     return () => clearInterval(interval);
   }, [isActive, phase]);
 
-  const toggle = () => setIsListening(!isActive);
+  const toggle = () => setIsActive(!isActive);
 
   return (
     <div className="grounding-card fade-in">
@@ -52,7 +52,7 @@ export const BreathingExercise: React.FC = () => {
         <button onClick={toggle} className={`action-btn ${isActive ? 'stop' : 'start'}`}>
           {isActive ? <><Square size={18} /> Stop</> : <><Play size={18} /> Start Session</>}
         </button>
-        <button onClick={() => {setIsListening(false); setSeconds(4);}} className="secondary-btn">
+        <button onClick={() => {setIsActive(false); setSeconds(4);}} className="secondary-btn">
           <RefreshCcw size={18} /> Reset
         </button>
       </div>
