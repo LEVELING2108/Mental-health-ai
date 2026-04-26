@@ -88,7 +88,7 @@ class ResponseGenerator:
 
         # 3. WORLD-CLASS COUNSELOR PROMPT (Few-Shot & Highly Tuned)
         gender_context = f"The user is {gender}." if gender else "The user's gender is unknown."
-        
+
         # Few-shot examples drastically improve FLAN-T5's conversational ability
         examples = (
             "Example 1:\n"
@@ -113,10 +113,10 @@ class ResponseGenerator:
         try:
             inputs = self.tokenizer(prompt, return_tensors="pt")
             outputs = self.model.generate(
-                **inputs, 
+                **inputs,
                 max_length=200,
                 min_length=30,
-                do_sample=True, 
+                do_sample=True,
                 temperature=0.8, # Perfect balance of warmth and coherence
                 top_p=0.92,
                 repetition_penalty=1.2, # Reduced to prevent grammatical breaking
@@ -124,7 +124,7 @@ class ResponseGenerator:
             )
             ai_empathy = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
             ai_empathy = ai_empathy.replace("Counselor:", "").strip()
-            
+
             # 4. Premium Hybrid Construction
             if is_positive:
                 final_response = f"{ai_empathy} It's a breath of fresh air to see you feeling this way! {advice}"
