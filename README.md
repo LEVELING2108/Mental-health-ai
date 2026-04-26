@@ -19,21 +19,21 @@
 *   **Emotion Transformer:** Nuanced detection of 6 core emotional states using `DistilBERT`.
 
 ### 2. 🎙️ Multi-Modal & Premium UI
-*   **Voice-to-Text:** Native browser Speech Recognition for users to speak their feelings.
+*   **Multilingual Voice-to-Text:** Robust, continuous speech recognition with support for **English, Hindi, Spanish, and French**. Includes real-time interim results and a "Listening" indicator.
 *   **Interactive Grounding Tool:** A high-end "Box Breathing" visual guide for immediate distress tolerance.
-*   **Premium Dark Mode:** A sophisticated midnight-themed interface with smooth CSS transitions.
+*   **Premium Theme Engine:** Sophisticated Light and Dark modes with seamless transitions and professional-grade typography.
 
 ### 3. 📊 Enterprise Data Analytics
-*   **"My Journey" Dashboard:** Professional-grade visualizations using **Recharts**.
+*   **"My Journey" Dashboard:** Professional-grade visualizations using **Recharts** to track mood trends and risk levels over time.
 *   **Persistence:** Secure storage of emotional history using **SQLAlchemy** (PostgreSQL/SQLite ready).
-*   **Security:** JWT-based sessions with direct **Bcrypt** password encryption.
+*   **Security:** JWT-based sessions with **Bcrypt** password hashing and secure user profiles.
 
 ---
 
 ## 🧱 Architectural Overview
 
 1.  **Backend (FastAPI):** High-performance asynchronous API with decoupled route management and lazy-loaded AI models.
-2.  **Frontend (React + Vite + TS):** Modern, component-based architecture with global state management via Context API.
+2.  **Frontend (React + Vite + TS):** Modern, component-based architecture with global state management via Context API and real-time speech processing.
 3.  **DevOps & MLOps:** 
     *   Full CI/CD via GitHub Actions.
     *   Strict quality control using **Ruff** (linting) and **Pytest**.
@@ -55,16 +55,27 @@ pip install -r requirements.txt
 # Run migrations
 alembic upgrade head
 
-# Start API (Explicit binding for reliable local connection)
-python -m uvicorn api.main:app --reload --host 127.0.0.1 --port 8001
+# Start API
+python -m uvicorn api.main:app --host 0.0.0.0 --port 8001
 ```
 
 ### 2. Frontend Setup
 ```bash
 cd frontend
 npm install
-npm run dev
+npm run dev -- --host 0.0.0.0
 ```
+
+---
+
+## 🛠️ Mobile Testing & Secure Features
+Browser speech recognition requires a **Secure Context (HTTPS)**.
+
+### For Local Mobile Testing:
+1.  **Chrome Flag (Recommended):**
+    Open `chrome://flags/#unsafely-treat-insecure-origin-as-secure` on your mobile Chrome. Enable it and add your PC's IP (e.g., `http://192.168.1.5:5173`).
+2.  **HTTPS Tunnel:**
+    Use `ngrok http 5173` to get a temporary public HTTPS URL for full feature access.
 
 ---
 

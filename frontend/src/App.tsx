@@ -35,6 +35,7 @@ const MainApp: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [recognitionLang, setRecognitionLang] = useState('en-US');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -83,15 +84,66 @@ const MainApp: React.FC = () => {
     }
   }, [isAuthenticated, view]);
 
-  const startListening = () => {
+  const recognitionRef = useRef<any>(null);
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+      return;
+    }
+
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) return alert("Browser not supported.");
+    if (!SpeechRecognition) {
+      alert("Browser not supported for voice input.");
+      return;
+    }
+
     const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
+    
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = recognitionLang;
+
     recognition.onstart = () => setIsListening(true);
-    recognition.onresult = (event: any) => setInputText(prev => prev + " " + event.results[0][0].transcript);
-    recognition.onend = () => setIsListening(false);
+    
+    recognition.onresult = (event: any) => {
+      let interimTranscript = '';
+      let finalTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        } else {
+          interimTranscript += event.results[i][0].transcript;
+        }
+      }
+
+      if (finalTranscript) {
+        setInputText(prev => prev + (prev.endsWith(' ') || !prev ? '' : ' ') + finalTranscript);
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error("Speech recognition error", event.error);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
     recognition.start();
   };
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -240,6 +292,12 @@ const MainApp: React.FC = () => {
             </div>
 
             <form className="chat-input-wrapper" onSubmit={handleSendMessage}>
+              {isListening && (
+                <div className="listening-indicator">
+                  <span className="pulse-dot"></span>
+                  <span>Listening ({recognitionLang})... Speak now.</span>
+                </div>
+              )}
               <div className="input-box">
                 <textarea 
                   value={inputText}
@@ -249,7 +307,18 @@ const MainApp: React.FC = () => {
                   onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(e); } }}
                 />
                 <div className="input-actions">
-                  <button type="button" className={`icon-btn ${isListening ? 'listening' : ''}`} onClick={startListening}>
+                  <select 
+                    className="voice-lang-select"
+                    value={recognitionLang}
+                    onChange={(e) => setRecognitionLang(e.target.value)}
+                    disabled={isListening}
+                  >
+                    <option value="en-US">EN</option>
+                    <option value="hi-IN">HI</option>
+                    <option value="es-ES">ES</option>
+                    <option value="fr-FR">FR</option>
+                  </select>
+                  <button type="button" className={`icon-btn ${isListening ? 'listening' : ''}`} onClick={toggleListening}>
                     {isListening ? <MicOff size={18} /> : <Mic size={18} />}
                   </button>
                   <button type="submit" className="send-btn" disabled={loading || !inputText.trim()}>
