@@ -195,6 +195,42 @@ body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg-app); c
 .icon-btn.listening { color: var(--risk-high); animation: pulse 1.5s infinite; border-radius: 50%; background: #fee2e2; }
 .send-btn { background: var(--primary); color: white; border: none; padding: 0.6rem; border-radius: 50%; cursor: pointer; display: flex; }
 
+.listening-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--risk-high);
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--risk-high);
+  border-radius: 50%;
+  animation: pulse 1.5s infinite;
+}
+
+.voice-lang-select {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  padding: 0.2rem;
+  cursor: pointer;
+  outline: none;
+}
+
+.voice-lang-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Dashboard & Profile Containers */
 .dashboard-container, .profile-container, .grounding-card { 
   flex: 1; 
