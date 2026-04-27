@@ -200,7 +200,7 @@ const MainApp: React.FC = () => {
     setInputText('');
     setLoading(true);
 
-    try:
+    try {
       // Construct history for AI (last 6 messages to stay within context limits)
       const chatHistory = messages.slice(-6).map(m => ({
         role: m.role,
