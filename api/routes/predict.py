@@ -28,9 +28,11 @@ def predict_mental_health(
 ) -> SupportResponse:
     logger.info(f"Received prediction request. Text length: {len(request.text)}")
     try:
-        # 1. Gather context from DB history if available
-        history_context = []
-        if current_user:
+        # 1. Gather context: Prefer request history (current session) over DB history (past sessions)
+        history_context = request.history
+        
+        if not history_context and current_user:
+            history_context = []
             past_logs = db.query(MoodLog).filter(MoodLog.user_id == current_user.id)\
                           .order_by(MoodLog.created_at.desc()).limit(5).all()
             # Convert to history format (oldest first for the AI)
@@ -39,7 +41,7 @@ def predict_mental_health(
                 history_context.append({"role": "assistant", "content": log.ai_response})
 
         # 2. Perform AI Analysis with History and Gender
-        logger.info(f"Starting AI prediction (History depth: {len(history_context)})...")
+        logger.info(f"Starting AI prediction (History depth: {len(history_context) if history_context else 0})...")
         gender = current_user.gender if current_user else None
         result = predictor.predict(request.text, history=history_context, gender=gender)
         logger.info("AI prediction completed successfully.")

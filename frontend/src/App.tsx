@@ -155,9 +155,19 @@ const MainApp: React.FC = () => {
     setInputText('');
     setLoading(true);
 
-    try {
-      const response = await apiClient.post('/predict', { text: currentInput });
+    try:
+      // Construct history for AI (last 6 messages to stay within context limits)
+      const chatHistory = messages.slice(-6).map(m => ({
+        role: m.role,
+        content: m.content
+      }));
+
+      const response = await apiClient.post('/predict', { 
+        text: currentInput,
+        history: chatHistory 
+      });
       const aiMsg: ChatMessage = {
+
         role: 'assistant',
         content: response.data.ai_generated_response,
         risk: response.data.risk,

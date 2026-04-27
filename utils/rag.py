@@ -25,9 +25,8 @@ class RAGEngine:
             embedding_function=self.embedding_fn
         )
 
-        # 4. Automatically index if empty
-        if self.collection.count() == 0:
-            self.index_knowledge_base()
+        # 4. Always index on startup to pick up new/updated files
+        self.index_knowledge_base()
 
     def index_knowledge_base(self):
         """Index all markdown files from data/knowledge_base into the vector DB."""
@@ -36,7 +35,7 @@ class RAGEngine:
             logger.warning(f"Knowledge base directory {kb_path} not found.")
             return
 
-        logger.info("Indexing knowledge base into Vector DB...")
+        logger.info(f"Checking knowledge base at {kb_path}...")
 
         documents = []
         ids = []
@@ -47,18 +46,18 @@ class RAGEngine:
                 file_path = os.path.join(kb_path, filename)
                 with open(file_path, encoding="utf-8") as f:
                     content = f.read()
-                    # We can split by section or just index the whole file for now
                     documents.append(content)
                     ids.append(filename)
                     metadatas.append({"source": filename})
 
         if documents:
-            self.collection.add(
+            # Use upsert to handle updates and additions gracefully
+            self.collection.upsert(
                 documents=documents,
                 ids=ids,
                 metadatas=metadatas
             )
-            logger.info(f"Successfully indexed {len(documents)} documents.")
+            logger.info(f"Knowledge base synced: {self.collection.count()} documents total.")
 
     def query(self, text: str, n_results: int = 1) -> str:
         """Search for the most relevant medical guidance."""
