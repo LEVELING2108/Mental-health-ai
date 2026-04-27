@@ -152,6 +152,136 @@ body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg-app); c
 .nav-avatar-placeholder { width: 32px; height: 32px; border-radius: 50%; background: var(--bg-input); display: flex; align-items: center; justify-content: center; color: var(--text-muted); }
 .logout-btn { color: var(--risk-high); font-weight: 600; border: none; background: transparent; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; }
 
+/* Emergency SOS */
+.sos-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  font-weight: 800;
+  transition: all 0.2s;
+  margin-bottom: 0.5rem;
+  width: 100%;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.1);
+}
+
+.sos-nav-btn:hover {
+  background: #fecaca;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(220, 38, 38, 0.15);
+}
+
+.sos-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1.5rem;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.sos-modal {
+  background: var(--bg-card);
+  width: 100%;
+  max-width: 500px;
+  border-radius: 2rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  border: 2px solid #ef4444;
+  overflow: hidden;
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sos-header {
+  background: #ef4444;
+  color: white;
+  padding: 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.sos-header h2 { margin: 0; font-size: 1.75rem; font-weight: 900; }
+.sos-header p { margin: 0; opacity: 0.9; font-weight: 500; }
+
+.sos-content { padding: 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
+
+.sos-section { display: flex; flex-direction: column; gap: 0.75rem; }
+.sos-section h3 { 
+  margin: 0; 
+  font-size: 0.85rem; 
+  text-transform: uppercase; 
+  color: var(--text-muted); 
+  letter-spacing: 0.1em;
+  font-weight: 800;
+}
+
+.hotline-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  background: var(--bg-input);
+  border-radius: 1rem;
+  border: 1px solid var(--border);
+}
+
+.hotline-info { display: flex; flex-direction: column; }
+.hotline-name { font-weight: 700; color: var(--text-main); }
+.hotline-number { font-family: 'Mono', monospace; color: #dc2626; font-weight: 800; font-size: 1.1rem; }
+
+.call-btn {
+  background: #dc2626;
+  color: white;
+  padding: 0.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: transform 0.2s;
+}
+.call-btn:hover { transform: scale(1.1); }
+
+.sos-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 1rem;
+}
+
+.sos-action-btn.grounding { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+.sos-action-btn.close { background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border); }
+
+.sos-action-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 /* Content Area */
 .content-area { flex: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; height: 100vh; }
 

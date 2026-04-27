@@ -10,7 +10,7 @@ import apiClient from './api/client';
 import { 
   MessageSquare, LayoutDashboard, LogOut, User as UserIcon, 
   ChevronRight, BrainCircuit, HeartHandshake, ShieldCheck, 
-  Mic, MicOff, Sun, Moon, Wind, Send, Sparkles
+  Mic, MicOff, Sun, Moon, Wind, Send, Sparkles, AlertCircle, Phone, X
 } from 'lucide-react';
 
 interface ChatMessage {
@@ -21,10 +21,55 @@ interface ChatMessage {
   timestamp: Date;
 }
 
+const EmergencySOSModal: React.FC<{ isOpen: boolean; onClose: () => void; onStartGrounding: () => void }> = ({ isOpen, onClose, onStartGrounding }) => {
+  if (!isOpen) return null;
+
+  const hotlines = [
+    { name: "Vandrevala Foundation", number: "9999666555", info: "24/7 Helpline (India)" },
+    { name: "iCall (TISS)", number: "9152987821", info: "Mon-Sat, 10am-8pm" },
+    { name: "National Crisis Line", number: "988", info: "Global / US Standard" }
+  ];
+
+  return (
+    <div className="sos-overlay" onClick={onClose}>
+      <div className="sos-modal" onClick={e => e.stopPropagation()}>
+        <div className="sos-header">
+          <AlertCircle size={48} />
+          <h2>You are not alone.</h2>
+          <p>Help is available right now. Please reach out.</p>
+        </div>
+        <div className="sos-content">
+          <div className="sos-section">
+            <h3>Immediate Hotlines</h3>
+            {hotlines.map((h, i) => (
+              <div key={i} className="hotline-card">
+                <div className="hotline-info">
+                  <span className="hotline-name">{h.name}</span>
+                  <span className="hotline-number">{h.number}</span>
+                </div>
+                <a href={`tel:${h.number}`} className="call-btn"><Phone size={20} /></a>
+              </div>
+            ))}
+          </div>
+
+          <button className="sos-action-btn grounding" onClick={() => { onStartGrounding(); onClose(); }}>
+            <Wind size={20} /> Start Grounding Exercise
+          </button>
+          
+          <button className="sos-action-btn close" onClick={onClose}>
+            <X size={20} /> Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const MainApp: React.FC = () => {
   const { userEmail, logout, isAuthenticated } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [view, setView] = useState<'chat' | 'dashboard' | 'grounding' | 'profile'>('chat');
+  const [isSOSOpen, setIsSOSOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   
   // User Data State
@@ -224,6 +269,11 @@ const MainApp: React.FC = () => {
           <BrainCircuit color="#3b82f6" />
           <span>Sentimental AI</span>
         </div>
+        
+        <button className="sos-nav-btn" onClick={() => setIsSOSOpen(true)}>
+          <AlertCircle size={18} /> <span>Emergency SOS</span>
+        </button>
+
         <div className="nav-links">
           <button className={view === 'chat' ? 'active' : ''} onClick={() => setView('chat')}>
             <MessageSquare size={20} /> <span>Support AI</span>
@@ -365,6 +415,12 @@ const MainApp: React.FC = () => {
           <span>Exit</span>
         </button>
       </nav>
+
+      <EmergencySOSModal 
+        isOpen={isSOSOpen} 
+        onClose={() => setIsSOSOpen(false)} 
+        onStartGrounding={() => setView('grounding')}
+      />
     </div>
   );
 };
